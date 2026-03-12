@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude config
+.claude/
+
+# Planning docs
+HLD.md
+LLD.md
+Feature Flag System.md
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+tmp/
