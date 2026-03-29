@@ -35,16 +35,16 @@ export function TargetedUsersInput({ users, onChange }: TargetedUsersInputProps)
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Enter user ID..."
-          className="flex-1"
+          className="flex-1 font-mono transition-all focus:anime-border-glow"
         />
-        <Button type="button" variant="secondary" onClick={addUser}>
+        <Button type="button" variant="secondary" onClick={addUser} className="font-semibold uppercase tracking-wider">
           Add
         </Button>
       </div>
@@ -57,12 +57,12 @@ export function TargetedUsersInput({ users, onChange }: TargetedUsersInputProps)
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
             >
-              <Badge variant="secondary" className="gap-1 pr-1">
+              <Badge variant="secondary" className="gap-1 pr-1 font-mono text-xs">
                 {user}
                 <button
                   type="button"
                   onClick={() => removeUser(user)}
-                  className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  className="ml-1 rounded-full p-0.5 transition-colors hover:bg-destructive/20 hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
                 </button>

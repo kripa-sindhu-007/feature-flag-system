@@ -25,7 +25,9 @@ func (h *ClientHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type clientFlag struct {
+		ID                string   `json:"id"`
 		Key               string   `json:"key"`
+		Description       string   `json:"description"`
 		Enabled           bool     `json:"enabled"`
 		RolloutPercentage int      `json:"rollout_percentage"`
 		TargetedUsers     []string `json:"targeted_users"`
@@ -38,7 +40,9 @@ func (h *ClientHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 			users = []string{}
 		}
 		result[i] = clientFlag{
+			ID:                f.ID,
 			Key:               f.Key,
+			Description:       f.Description,
 			Enabled:           f.Enabled,
 			RolloutPercentage: f.RolloutPercentage,
 			TargetedUsers:     users,

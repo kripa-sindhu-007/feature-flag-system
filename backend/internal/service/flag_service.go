@@ -142,7 +142,9 @@ func (s *flagService) GetAllFlagConfigs(ctx context.Context) ([]model.Flag, erro
 
 func (s *flagService) publishFlagUpdate(ctx context.Context, flag *model.Flag) {
 	data, err := json.Marshal(map[string]interface{}{
+		"id":                flag.ID,
 		"key":               flag.Key,
+		"description":       flag.Description,
 		"enabled":           flag.Enabled,
 		"rollout_percentage": flag.RolloutPercentage,
 		"targeted_users":    flag.TargetedUsers,

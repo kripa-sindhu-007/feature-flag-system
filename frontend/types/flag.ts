@@ -25,7 +25,9 @@ export interface UpdateFlagInput {
 }
 
 export interface FlagConfig {
+  id: string;
   key: string;
+  description: string;
   enabled: boolean;
   rollout_percentage: number;
   targeted_users: string[];

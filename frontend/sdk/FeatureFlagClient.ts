@@ -65,6 +65,10 @@ export class FeatureFlagClient {
     return this.isInRollout(flagKey, userId, flag.rollout_percentage);
   }
 
+  getAllFlags(): Map<string, FlagConfig> {
+    return this.flags;
+  }
+
   onUpdate(
     callback: (flags: Map<string, FlagConfig>) => void
   ): () => void {

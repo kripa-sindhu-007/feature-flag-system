@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FlagForm } from "@/components/flags/FlagForm";
@@ -37,14 +37,24 @@ export default function NewFlagPage() {
     >
       <div className="flex items-center gap-4">
         <Link href="/flags">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="rounded-lg">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">Create Flag</h1>
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-wider">
+            Create <span className="text-primary">Flag</span>
+          </h1>
+          <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Configure a new feature flag
+          </p>
+        </div>
+        <Sparkles className="ml-auto h-5 w-5 text-primary/30 anime-float" />
       </div>
 
-      <FlagForm onSubmit={handleSubmit} isLoading={createFlag.isPending} />
+      <div className="rounded-xl border border-border/50 bg-card/50 p-6 backdrop-blur-sm">
+        <FlagForm onSubmit={handleSubmit} isLoading={createFlag.isPending} />
+      </div>
     </motion.div>
   );
 }

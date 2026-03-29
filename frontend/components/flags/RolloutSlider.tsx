@@ -31,7 +31,7 @@ export function RolloutSlider({ value, onChange }: RolloutSliderProps) {
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/20 p-4">
       <Slider
         value={[localValue]}
         onValueChange={handleChange}
@@ -46,9 +46,9 @@ export function RolloutSlider({ value, onChange }: RolloutSliderProps) {
           initial={{ opacity: 0.7 }}
           animate={{
             opacity: 1,
-            scale: showPulse ? [1, 1.2, 1] : 1,
+            scale: showPulse ? [1, 1.15, 1] : 1,
           }}
-          className="min-w-[3rem] text-right text-sm font-medium"
+          className="min-w-[3.5rem] rounded-md bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold text-primary"
         >
           {localValue}%
         </motion.span>

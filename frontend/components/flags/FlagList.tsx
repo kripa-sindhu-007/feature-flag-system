@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { staggerContainer, staggerItem } from "@/components/motion/variants";
 import { useFlags, useToggleFlag } from "@/hooks/useFlags";
@@ -31,7 +31,10 @@ export function FlagList() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Loading flags...</p>
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Loading flags...</p>
+        </div>
       </div>
     );
   }
@@ -39,9 +42,16 @@ export function FlagList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Feature Flags</h1>
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-wider">
+            Feature <span className="text-primary">Flags</span>
+          </h1>
+          <p className="mt-0.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            {flags?.length || 0} flags registered
+          </p>
+        </div>
         <Link href="/flags/new">
-          <Button>
+          <Button className="font-semibold uppercase tracking-wider">
             <Plus className="mr-2 h-4 w-4" />
             Create Flag
           </Button>
@@ -49,22 +59,26 @@ export function FlagList() {
       </div>
 
       {!flags?.length ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
-          <p className="text-muted-foreground">No flags yet</p>
+        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-primary/30 py-16">
+          <div className="anime-corner pointer-events-none absolute inset-0" />
+          <Sparkles className="mb-3 h-8 w-8 text-primary/40" />
+          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">No flags yet</p>
           <Link href="/flags/new">
-            <Button variant="link">Create your first flag</Button>
+            <Button variant="link" className="mt-2 font-semibold uppercase tracking-wider text-primary">
+              Create your first flag
+            </Button>
           </Link>
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="overflow-hidden rounded-xl border border-border/50">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Rollout</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="border-border/50 bg-muted/30">
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Key</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Description</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Status</TableHead>
+                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Rollout</TableHead>
+                <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <motion.tbody
@@ -78,12 +92,12 @@ export function FlagList() {
                     key={flag.id}
                     variants={staggerItem}
                     exit={{ opacity: 0, x: -20 }}
-                    className="border-b transition-colors hover:bg-muted/50"
+                    className="border-b border-border/30 transition-colors hover:bg-primary/[0.03]"
                   >
-                    <TableCell className="font-medium">
+                    <TableCell className="font-mono text-sm font-semibold">
                       <Link
                         href={`/flags/${flag.id}`}
-                        className="hover:underline"
+                        className="transition-colors hover:text-primary hover:underline"
                       >
                         {flag.key}
                       </Link>
@@ -91,9 +105,9 @@ export function FlagList() {
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger
-                          render={<span className="line-clamp-1 max-w-50" />}
+                          render={<span className="line-clamp-1 max-w-50 text-sm text-muted-foreground" />}
                         >
-                          {flag.description || "—"}
+                          {flag.description || "---"}
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>{flag.description || "No description"}</p>
@@ -101,11 +115,19 @@ export function FlagList() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={flag.enabled ? "default" : "secondary"}>
-                        {flag.enabled ? "ON" : "OFF"}
-                      </Badge>
+                      {flag.enabled ? (
+                        <Badge className="anime-status-on border-0 text-[10px] font-bold uppercase tracking-widest">
+                          ON
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-widest">
+                          OFF
+                        </Badge>
+                      )}
                     </TableCell>
-                    <TableCell>{flag.rollout_percentage}%</TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{flag.rollout_percentage}%</span>
+                    </TableCell>
                     <TableCell className="text-right">
                       <ToggleSwitch
                         enabled={flag.enabled}

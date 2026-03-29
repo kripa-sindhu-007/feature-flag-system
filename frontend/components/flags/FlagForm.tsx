@@ -82,16 +82,17 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         transition={{ delay: 0.05 }}
         className="space-y-2"
       >
-        <Label htmlFor="key">Flag Key</Label>
+        <Label htmlFor="key" className="text-[10px] font-bold uppercase tracking-widest">Flag Key</Label>
         <Input
           id="key"
           value={key}
           onChange={(e) => setKey(e.target.value)}
           disabled={isEdit}
           placeholder="my-feature-flag"
+          className="font-mono transition-all focus:anime-border-glow"
         />
         {errors.key && (
-          <p className="text-sm text-destructive">{errors.key}</p>
+          <p className="text-xs font-medium text-destructive">{errors.key}</p>
         )}
       </motion.div>
 
@@ -101,13 +102,14 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         transition={{ delay: 0.1 }}
         className="space-y-2"
       >
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description" className="text-[10px] font-bold uppercase tracking-widest">Description</Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What does this flag control?"
           rows={3}
+          className="transition-all focus:anime-border-glow"
         />
       </motion.div>
 
@@ -115,14 +117,21 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="flex items-center gap-3"
+        className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-4"
       >
-        <Label htmlFor="enabled">Enabled</Label>
+        <Label htmlFor="enabled" className="text-[10px] font-bold uppercase tracking-widest">Enabled</Label>
         <Switch
           id="enabled"
           checked={enabled}
           onCheckedChange={setEnabled}
         />
+        <span className="ml-auto text-xs font-medium text-muted-foreground">
+          {enabled ? (
+            <span className="text-primary">Active</span>
+          ) : (
+            "Inactive"
+          )}
+        </span>
       </motion.div>
 
       <motion.div
@@ -131,10 +140,10 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         transition={{ delay: 0.2 }}
         className="space-y-2"
       >
-        <Label>Rollout Percentage</Label>
+        <Label className="text-[10px] font-bold uppercase tracking-widest">Rollout Percentage</Label>
         <RolloutSlider value={rolloutPercentage} onChange={setRolloutPercentage} />
         {errors.rollout && (
-          <p className="text-sm text-destructive">{errors.rollout}</p>
+          <p className="text-xs font-medium text-destructive">{errors.rollout}</p>
         )}
       </motion.div>
 
@@ -144,7 +153,7 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         transition={{ delay: 0.25 }}
         className="space-y-2"
       >
-        <Label>Targeted Users</Label>
+        <Label className="text-[10px] font-bold uppercase tracking-widest">Targeted Users</Label>
         <TargetedUsersInput users={targetedUsers} onChange={setTargetedUsers} />
       </motion.div>
 
@@ -153,7 +162,7 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="font-semibold uppercase tracking-wider">
           {isLoading ? "Saving..." : isEdit ? "Save Changes" : "Create Flag"}
         </Button>
       </motion.div>
