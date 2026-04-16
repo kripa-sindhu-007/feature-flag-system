@@ -27,29 +27,30 @@ Commercial feature flag services like LaunchDarkly and Flagsmith solve a real pr
 
 ## Architecture
 
-```mermaid
-graph LR
-    subgraph Client
-        SDK[Client SDK]
-        Dashboard[Next.js Dashboard<br/>:3000]
-    end
-
-    subgraph Backend
-        API[Go API Server<br/>:8080]
-    end
-
-    subgraph Storage
-        PG[(PostgreSQL<br/>Flag Storage)]
-        RD[(Redis<br/>Cache / Pub-Sub)]
-    end
-
-    Dashboard -- REST API --> API
-    SDK -- REST API --> API
-    API -- SSE Stream --> SDK
-    API -- SSE Stream --> Dashboard
-    API --> PG
-    API --> RD
-    RD -. Pub/Sub .-> API
+```
+                        ┌─────────────────────────────────────────────┐
+                        │              Go API Server (:8080)          │
+                        │                                             │
+                        │   ┌───────────┐  ┌───────────┐  ┌───────┐  │
+                        │   │ Handlers  │  │  Service   │  │  SSE  │  │
+                        │   │ (Chi)     │──│  Layer     │──│ Broker│  │
+                        │   └───────────┘  └─────┬─────┘  └───┬───┘  │
+                        │                        │             │      │
+                        └────────────────────────┼─────────────┼──────┘
+                              ▲       ▲          │             │
+                    REST API  │       │  SSE     │             │
+                              │       │ Stream   ▼             ▼
+               ┌──────────────┴──┐    │    ┌──────────┐  ┌──────────┐
+               │  Next.js        │    │    │PostgreSQL│  │  Redis   │
+               │  Dashboard      │◄───┘    │          │  │          │
+               │  (:3000)        │         │  Flag    │  │ Pub/Sub  │
+               └─────────────────┘         │  Storage │  │  Cache   │
+                                           └──────────┘  └──────────┘
+               ┌─────────────────┐              ▲              ▲
+               │  Client SDK     │              │              │
+               │  (TypeScript)   │──REST API──► │   ◄──────────┘
+               │                 │◄──SSE──────  │
+               └─────────────────┘              │
 ```
 
 ---
