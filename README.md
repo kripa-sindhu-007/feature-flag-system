@@ -13,7 +13,7 @@ A self-hosted feature flag platform with percentage rollouts, targeted user acce
 
 ## Demo
 
-![Watch the demo](docs/demo-thumbnail.png)
+[![Watch the demo](docs/demo-thumbnail.png)](https://github.com/kripa-sindhu-007/feature-flag-system/raw/main/video/out/demo-video.mp4)
 
 > **Click the image above to watch the demo** — a 2-minute walkthrough covering flag creation, percentage rollouts, real-time toggling, and the demo app showing per-user evaluation across different rollout rules.
 
