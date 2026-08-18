@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -9,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { RolloutSlider } from "./RolloutSlider";
 import { TargetedUsersInput } from "./TargetedUsersInput";
-import { pageTransition, defaultTransition } from "@/components/motion/variants";
 import { CreateFlagInput, UpdateFlagInput, Flag } from "@/types/flag";
 
 type FlagFormProps =
@@ -28,13 +26,14 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
     flag?.targeted_users || []
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const keyRef = useRef<HTMLInputElement>(null);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!isEdit) {
       if (!key) newErrors.key = "Key is required";
       else if (!/^[a-zA-Z0-9-]+$/.test(key))
-        newErrors.key = "Key must be alphanumeric with hyphens only";
+        newErrors.key = "Use letters, numbers, and hyphens only";
       else if (key.length > 64)
         newErrors.key = "Key must be at most 64 characters";
     }
@@ -42,6 +41,7 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
       newErrors.rollout = "Must be between 0 and 100";
 
     setErrors(newErrors);
+    if (newErrors.key) keyRef.current?.focus();
     return Object.keys(newErrors).length === 0;
   };
 
@@ -68,104 +68,91 @@ export function FlagForm({ flag, onSubmit, isLoading }: FlagFormProps) {
   };
 
   return (
-    <motion.form
-      variants={pageTransition}
-      initial="initial"
-      animate="animate"
-      transition={defaultTransition}
-      onSubmit={handleSubmit}
-      className="space-y-6"
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="space-y-2"
-      >
-        <Label htmlFor="key" className="text-[10px] font-bold uppercase tracking-widest">Flag Key</Label>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Key */}
+      <div className="space-y-1.5">
+        <Label htmlFor="key">
+          Flag key {!isEdit && <span className="text-destructive">*</span>}
+        </Label>
         <Input
           id="key"
+          ref={keyRef}
           value={key}
           onChange={(e) => setKey(e.target.value)}
           disabled={isEdit}
           placeholder="my-feature-flag"
-          className="font-mono transition-all focus:anime-border-glow"
+          className="font-mono"
+          aria-invalid={!!errors.key}
+          aria-describedby={errors.key ? "key-error" : "key-hint"}
         />
-        {errors.key && (
-          <p className="text-xs font-medium text-destructive">{errors.key}</p>
+        {errors.key ? (
+          <p id="key-error" role="alert" className="text-xs text-destructive">
+            {errors.key}
+          </p>
+        ) : (
+          <p id="key-hint" className="text-xs text-muted-foreground">
+            {isEdit
+              ? "The key is immutable once created."
+              : "Stable identifier used by SDKs. Cannot be changed later."}
+          </p>
         )}
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="space-y-2"
-      >
-        <Label htmlFor="description" className="text-[10px] font-bold uppercase tracking-widest">Description</Label>
+      {/* Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="What does this flag control?"
           rows={3}
-          className="transition-all focus:anime-border-glow"
         />
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 p-4"
-      >
-        <Label htmlFor="enabled" className="text-[10px] font-bold uppercase tracking-widest">Enabled</Label>
-        <Switch
-          id="enabled"
-          checked={enabled}
-          onCheckedChange={setEnabled}
-        />
-        <span className="ml-auto text-xs font-medium text-muted-foreground">
-          {enabled ? (
-            <span className="text-primary">Active</span>
-          ) : (
-            "Inactive"
-          )}
-        </span>
-      </motion.div>
+      {/* Enabled */}
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 px-4 py-3">
+        <div>
+          <Label htmlFor="enabled" className="cursor-pointer">
+            Enabled
+          </Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            When off, the flag evaluates to false for everyone.
+          </p>
+        </div>
+        <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="space-y-2"
-      >
-        <Label className="text-[10px] font-bold uppercase tracking-widest">Rollout Percentage</Label>
+      {/* Rollout */}
+      <div className="space-y-1.5">
+        <Label>Rollout percentage</Label>
         <RolloutSlider value={rolloutPercentage} onChange={setRolloutPercentage} />
-        {errors.rollout && (
-          <p className="text-xs font-medium text-destructive">{errors.rollout}</p>
+        {errors.rollout ? (
+          <p role="alert" className="text-xs text-destructive">
+            {errors.rollout}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Deterministic per user — increasing the percentage keeps existing
+            users in the cohort.
+          </p>
         )}
-      </motion.div>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="space-y-2"
-      >
-        <Label className="text-[10px] font-bold uppercase tracking-widest">Targeted Users</Label>
+      {/* Targeting */}
+      <div className="space-y-1.5">
+        <Label>Targeted users</Label>
         <TargetedUsersInput users={targetedUsers} onChange={setTargetedUsers} />
-      </motion.div>
+        <p className="text-xs text-muted-foreground">
+          Always-on for these user IDs, regardless of rollout percentage.
+        </p>
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <Button type="submit" disabled={isLoading} className="font-semibold uppercase tracking-wider">
-          {isLoading ? "Saving..." : isEdit ? "Save Changes" : "Create Flag"}
+      <div className="flex items-center gap-3 pt-1">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? "Saving…" : isEdit ? "Save changes" : "Create flag"}
         </Button>
-      </motion.div>
-    </motion.form>
+      </div>
+    </form>
   );
 }

@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface TargetedUsersInputProps {
   users: string[];
@@ -35,42 +33,41 @@ export function TargetedUsersInput({ users, onChange }: TargetedUsersInputProps)
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       <div className="flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Enter user ID..."
-          className="flex-1 font-mono transition-all focus:anime-border-glow"
+          placeholder="Enter user ID and press Enter…"
+          className="flex-1 font-mono"
+          aria-label="Add targeted user ID"
         />
-        <Button type="button" variant="secondary" onClick={addUser} className="font-semibold uppercase tracking-wider">
+        <Button type="button" variant="secondary" onClick={addUser}>
+          <Plus className="h-4 w-4" />
           Add
         </Button>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        <AnimatePresence>
+      {users.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
           {users.map((user) => (
-            <motion.span
+            <span
               key={user}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-muted py-0.5 pl-2 pr-1 font-mono text-xs text-foreground"
             >
-              <Badge variant="secondary" className="gap-1 pr-1 font-mono text-xs">
-                {user}
-                <button
-                  type="button"
-                  onClick={() => removeUser(user)}
-                  className="ml-1 rounded-full p-0.5 transition-colors hover:bg-destructive/20 hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            </motion.span>
+              {user}
+              <button
+                type="button"
+                onClick={() => removeUser(user)}
+                aria-label={`Remove ${user}`}
+                className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
           ))}
-        </AnimatePresence>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

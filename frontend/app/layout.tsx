@@ -1,32 +1,28 @@
 import type { Metadata } from "next";
-import { Rajdhani, Nunito, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Header } from "@/components/layout/Header";
+import { TopBar } from "@/components/layout/TopBar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const rajdhani = Rajdhani({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const nunito = Nunito({
-  variable: "--font-body",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Feature Flag System",
-  description: "Manage and control feature flags",
+  title: "FlagPlane — Feature Flags",
+  description:
+    "Self-hosted feature-flag control plane: rollouts, targeting, real-time propagation.",
 };
 
 export default function RootLayout({
@@ -37,17 +33,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${rajdhani.variable} ${nunito.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <Providers>
-          <TooltipProvider>
-            <div className="relative flex min-h-screen flex-col">
-              {/* Subtle grid background */}
-              <div className="anime-grid-bg pointer-events-none fixed inset-0 opacity-30 dark:opacity-15" />
-              <Header />
-              <div className="relative flex flex-1">
-                <Sidebar />
-                <main className="flex-1 p-6">{children}</main>
+          <TooltipProvider delay={200}>
+            <div className="flex min-h-dvh">
+              <Sidebar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopBar />
+                <main className="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8">
+                  {children}
+                </main>
               </div>
             </div>
             <Toaster />

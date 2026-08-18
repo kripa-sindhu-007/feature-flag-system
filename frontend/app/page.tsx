@@ -1,100 +1,129 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
-import { Flag, Play, ArrowRight, Sparkles, Star } from "lucide-react";
+import { Flag, FlaskConical, ArrowRight, Power, Percent, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { pageTransition, defaultTransition, staggerContainer, staggerItem } from "@/components/motion/variants";
+import { useFlags } from "@/hooks/useFlags";
+import { useSSE } from "@/hooks/useSSE";
 
-export default function HomePage() {
+export default function OverviewPage() {
+  const { data: flags } = useFlags();
+  useSSE();
+
+  const total = flags?.length ?? 0;
+  const enabled = flags?.filter((f) => f.enabled).length ?? 0;
+  const avgRollout = total
+    ? Math.round((flags!.reduce((s, f) => s + f.rollout_percentage, 0) / total))
+    : 0;
+  const targeted = flags?.filter((f) => f.targeted_users.length > 0).length ?? 0;
+
   return (
-    <motion.div
-      variants={pageTransition}
-      initial="initial"
-      animate="animate"
-      transition={defaultTransition}
-      className="space-y-8"
-    >
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-neon-cyan/5 p-8">
-        <div className="relative z-10">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div className="h-px flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
-          </div>
-          <h1 className="text-4xl font-bold uppercase tracking-wider">
-            Dash<span className="text-primary">board</span>
-          </h1>
-          <p className="mt-2 text-sm font-medium uppercase tracking-widest text-muted-foreground">
-            Manage your feature flags and test them in the demo app
-          </p>
-        </div>
-
-        {/* Decorative corner stars */}
-        <Star className="absolute right-6 top-6 h-4 w-4 text-primary/20 anime-float" />
-        <Star className="absolute right-16 top-12 h-3 w-3 text-neon-cyan/20 anime-float" style={{ animationDelay: "1s" }} />
+    <div className="mx-auto max-w-6xl space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          Overview
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          A self-hosted feature-flag control plane — rollouts, targeting, and
+          real-time propagation.
+        </p>
       </div>
 
-      {/* Action Cards */}
-      <motion.div
-        variants={staggerContainer}
-        initial="initial"
-        animate="animate"
-        className="grid gap-4 md:grid-cols-2"
-      >
-        <motion.div variants={staggerItem}>
-          <Card className="group relative overflow-hidden border-border/50 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
-            <div className="anime-corner pointer-events-none absolute inset-0" />
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2.5 text-lg font-bold uppercase tracking-wider">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 transition-colors group-hover:bg-primary/25">
-                  <Flag className="h-4 w-4 text-primary" />
-                </div>
-                Feature Flags
-              </CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-widest">
-                Create, update, and manage your feature flags
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/flags">
-                <Button className="font-semibold uppercase tracking-wider">
-                  Manage Flags
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile icon={Flag} label="Total flags" value={total} />
+        <StatTile
+          icon={Power}
+          label="Enabled"
+          value={enabled}
+          hint={total ? `of ${total}` : undefined}
+        />
+        <StatTile icon={Percent} label="Avg rollout" value={`${avgRollout}%`} />
+        <StatTile icon={Users} label="With targeting" value={targeted} />
+      </div>
 
-        <motion.div variants={staggerItem}>
-          <Card className="group relative overflow-hidden border-border/50 transition-all duration-300 hover:border-neon-cyan/40 hover:shadow-lg hover:shadow-neon-cyan/5">
-            <div className="anime-corner pointer-events-none absolute inset-0" />
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2.5 text-lg font-bold uppercase tracking-wider">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neon-cyan/15 transition-colors group-hover:bg-neon-cyan/25">
-                  <Play className="h-4 w-4 text-neon-cyan" />
-                </div>
-                Demo Application
-              </CardTitle>
-              <CardDescription className="text-xs font-medium uppercase tracking-widest">
-                See feature flags in action with different users
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/demo">
-                <Button variant="secondary" className="font-semibold uppercase tracking-wider">
-                  Open Demo
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
-    </motion.div>
+      {/* Quick actions */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <ActionCard
+          icon={Flag}
+          title="Manage flags"
+          description="Create, roll out, target, and toggle feature flags."
+          href="/flags"
+          cta="Open flags"
+        />
+        <ActionCard
+          icon={FlaskConical}
+          title="Try the demo"
+          description="See per-user local evaluation as flags change live."
+          href="/demo"
+          cta="Open demo"
+          variant="secondary"
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: typeof Flag;
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="h-4 w-4" strokeWidth={2} />
+        <span className="text-xs font-medium uppercase tracking-wide">
+          {label}
+        </span>
+      </div>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
+          {value}
+        </span>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
+    </div>
+  );
+}
+
+function ActionCard({
+  icon: Icon,
+  title,
+  description,
+  href,
+  cta,
+  variant = "default",
+}: {
+  icon: typeof Flag;
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+  variant?: "default" | "secondary";
+}) {
+  return (
+    <div className="flex flex-col rounded-lg border border-border bg-card p-5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-foreground">
+        <Icon className="h-4 w-4" strokeWidth={2} />
+      </span>
+      <h3 className="mt-4 text-sm font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 flex-1 text-sm text-muted-foreground">{description}</p>
+      <Button
+        variant={variant}
+        className="mt-4 self-start"
+        nativeButton={false}
+        render={<Link href={href} />}
+      >
+        {cta}
+        <ArrowRight className="h-4 w-4" />
+      </Button>
+    </div>
   );
 }

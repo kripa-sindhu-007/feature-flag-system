@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Table,
   TableBody,
@@ -10,123 +9,115 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Flag as FlagIcon, Users, ChevronRight } from "lucide-react";
+import { StatusBadge } from "./StatusBadge";
+import { RolloutBar } from "./RolloutBar";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { staggerContainer, staggerItem } from "@/components/motion/variants";
 import { useFlags, useToggleFlag } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
 
 export function FlagList() {
-  const { data: flags, isLoading } = useFlags();
+  const { data: flags, isLoading, isError } = useFlags();
   const toggleFlag = useToggleFlag();
   useSSE();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-4 w-4 animate-pulse text-primary" />
-          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">Loading flags...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-6xl space-y-6">
+      {/* Header */}
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-wider">
-            Feature <span className="text-primary">Flags</span>
-          </h1>
-          <p className="mt-0.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            {flags?.length || 0} flags registered
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Feature flags
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {flags?.length ?? 0} flag{flags?.length === 1 ? "" : "s"} · evaluated
+            locally, propagated in real time
           </p>
         </div>
-        <Link href="/flags/new">
-          <Button className="font-semibold uppercase tracking-wider">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Flag
-          </Button>
-        </Link>
+        <Button nativeButton={false} render={<Link href="/flags/new" />}>
+          <Plus className="h-4 w-4" />
+          New flag
+        </Button>
       </div>
 
-      {!flags?.length ? (
-        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-primary/30 py-16">
-          <div className="anime-corner pointer-events-none absolute inset-0" />
-          <Sparkles className="mb-3 h-8 w-8 text-primary/40" />
-          <p className="text-sm font-medium uppercase tracking-widest text-muted-foreground">No flags yet</p>
-          <Link href="/flags/new">
-            <Button variant="link" className="mt-2 font-semibold uppercase tracking-wider text-primary">
-              Create your first flag
-            </Button>
-          </Link>
-        </div>
+      {/* States */}
+      {isError ? (
+        <ErrorState />
+      ) : isLoading ? (
+        <SkeletonTable />
+      ) : !flags?.length ? (
+        <EmptyState />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border/50">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/50 bg-muted/30">
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Key</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Description</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Status</TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest">Rollout</TableHead>
-                <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <motion.tbody
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-            >
-              <AnimatePresence>
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border hover:bg-transparent">
+                  <Th>Status</Th>
+                  <Th>Key</Th>
+                  <Th className="hidden md:table-cell">Description</Th>
+                  <Th className="hidden sm:table-cell">Rollout</Th>
+                  <Th className="hidden sm:table-cell">Targeting</Th>
+                  <Th className="text-right">Enabled</Th>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {flags.map((flag) => (
-                  <motion.tr
+                  <TableRow
                     key={flag.id}
-                    variants={staggerItem}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="border-b border-border/30 transition-colors hover:bg-primary/[0.03]"
+                    className="group border-border transition-colors hover:bg-muted/50"
                   >
-                    <TableCell className="font-mono text-sm font-semibold">
+                    <TableCell>
+                      <StatusBadge enabled={flag.enabled} />
+                    </TableCell>
+                    <TableCell>
                       <Link
                         href={`/flags/${flag.id}`}
-                        className="transition-colors hover:text-primary hover:underline"
+                        className="inline-flex max-w-[42vw] items-center gap-1 truncate font-mono text-sm font-medium text-foreground hover:text-primary sm:max-w-none"
                       >
-                        {flag.key}
+                        <span className="truncate">{flag.key}</span>
+                        <ChevronRight className="hidden h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 sm:inline" />
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <Tooltip>
                         <TooltipTrigger
-                          render={<span className="line-clamp-1 max-w-50 text-sm text-muted-foreground" />}
+                          render={
+                            <span className="line-clamp-1 max-w-xs text-sm text-muted-foreground" />
+                          }
                         >
-                          {flag.description || "---"}
+                          {flag.description || "—"}
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{flag.description || "No description"}</p>
-                        </TooltipContent>
+                        {flag.description && (
+                          <TooltipContent className="max-w-xs">
+                            {flag.description}
+                          </TooltipContent>
+                        )}
                       </Tooltip>
                     </TableCell>
-                    <TableCell>
-                      {flag.enabled ? (
-                        <Badge className="anime-status-on border-0 text-[10px] font-bold uppercase tracking-widest">
-                          ON
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-widest">
-                          OFF
-                        </Badge>
-                      )}
+                    <TableCell className="hidden sm:table-cell">
+                      <RolloutBar
+                        percentage={flag.rollout_percentage}
+                        active={flag.enabled}
+                      />
                     </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-sm">{flag.rollout_percentage}%</span>
+                    <TableCell className="hidden sm:table-cell">
+                      {flag.targeted_users.length > 0 ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Users className="h-3.5 w-3.5" />
+                          <span className="font-mono tabular-nums">
+                            {flag.targeted_users.length}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground/50">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <ToggleSwitch
@@ -135,13 +126,81 @@ export function FlagList() {
                         disabled={toggleFlag.isPending}
                       />
                     </TableCell>
-                  </motion.tr>
+                  </TableRow>
                 ))}
-              </AnimatePresence>
-            </motion.tbody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function Th({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <TableHead
+      className={`h-9 text-xs font-medium uppercase tracking-wide text-muted-foreground ${className ?? ""}`}
+    >
+      {children}
+    </TableHead>
+  );
+}
+
+function SkeletonTable() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="divide-y divide-border">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+            <div className="h-5 w-14 animate-pulse rounded-full bg-muted" />
+            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+            <div className="ml-auto h-4 w-24 animate-pulse rounded bg-muted" />
+            <div className="h-5 w-9 animate-pulse rounded-full bg-muted" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
+      <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted">
+        <FlagIcon className="h-5 w-5 text-muted-foreground" />
+      </span>
+      <p className="mt-4 text-sm font-medium text-foreground">No flags yet</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Create your first flag to start rolling out features.
+      </p>
+      <Button
+        className="mt-4"
+        nativeButton={false}
+        render={<Link href="/flags/new" />}
+      >
+        <Plus className="h-4 w-4" />
+        New flag
+      </Button>
+    </div>
+  );
+}
+
+function ErrorState() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 py-16 text-center">
+      <p className="text-sm font-medium text-destructive">
+        Couldn&apos;t reach the control plane
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Check that the API is running on :8080, then retry.
+      </p>
     </div>
   );
 }
