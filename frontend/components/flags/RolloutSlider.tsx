@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
 
 interface RolloutSliderProps {
@@ -11,7 +10,6 @@ interface RolloutSliderProps {
 
 export function RolloutSlider({ value, onChange }: RolloutSliderProps) {
   const [localValue, setLocalValue] = useState(value);
-  const [showPulse, setShowPulse] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
@@ -19,19 +17,14 @@ export function RolloutSlider({ value, onChange }: RolloutSliderProps) {
   }, [value]);
 
   const handleChange = (val: number | readonly number[]) => {
-    const newVal = Array.isArray(val) ? val[0] : val;
+    const newVal = Array.isArray(val) ? val[0] : (val as number);
     setLocalValue(newVal);
-    setShowPulse(true);
-    setTimeout(() => setShowPulse(false), 300);
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      onChange(newVal);
-    }, 300);
+    debounceRef.current = setTimeout(() => onChange(newVal), 200);
   };
 
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/20 p-4">
+    <div className="flex items-center gap-4 rounded-lg border border-border bg-muted/40 px-4 py-3">
       <Slider
         value={[localValue]}
         onValueChange={handleChange}
@@ -39,20 +32,11 @@ export function RolloutSlider({ value, onChange }: RolloutSliderProps) {
         min={0}
         step={1}
         className="flex-1"
+        aria-label="Rollout percentage"
       />
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={localValue}
-          initial={{ opacity: 0.7 }}
-          animate={{
-            opacity: 1,
-            scale: showPulse ? [1, 1.15, 1] : 1,
-          }}
-          className="min-w-[3.5rem] rounded-md bg-primary/10 px-2 py-1 text-center font-mono text-sm font-bold text-primary"
-        >
-          {localValue}%
-        </motion.span>
-      </AnimatePresence>
+      <span className="w-14 shrink-0 rounded-md border border-border bg-card py-1 text-center font-mono text-sm font-medium tabular-nums text-foreground">
+        {localValue}%
+      </span>
     </div>
   );
 }

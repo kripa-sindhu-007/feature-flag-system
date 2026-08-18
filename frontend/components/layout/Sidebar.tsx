@@ -2,68 +2,108 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { Flag, Layout, Play, Star } from "lucide-react";
+import { Flag, FlaskConical, Boxes, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: Layout },
-  { href: "/flags", label: "Flags", icon: Flag },
-  { href: "/demo", label: "Demo", icon: Play },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof Flag;
+  status?: "live" | "soon";
+};
+
+// Flags + Demo are live today. Cluster (W2) / Health (W3) land with their phases.
+const navItems: NavItem[] = [
+  { href: "/flags", label: "Flags", icon: Flag, status: "live" },
+  { href: "/demo", label: "Demo", icon: FlaskConical, status: "live" },
+  { href: "/cluster", label: "Cluster", icon: Boxes, status: "soon" },
+  { href: "/health", label: "Health", icon: Activity, status: "soon" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-56 shrink-0 border-r border-border/50 bg-sidebar/50 backdrop-blur-sm md:block">
-      <nav className="flex flex-col gap-1 p-4">
+    <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+      {/* Brand */}
+      <Link
+        href="/flags"
+        className="flex h-14 items-center gap-2.5 border-b border-border px-5"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Flag className="h-4 w-4" strokeWidth={2.25} />
+        </span>
+        <span className="text-sm font-semibold tracking-tight text-foreground">
+          FlagPlane
+        </span>
+      </Link>
+
+      {/* Nav */}
+      <nav className="flex flex-1 flex-col gap-0.5 p-3">
+        <p className="px-2 pb-1.5 pt-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Control plane
+        </p>
         {navItems.map((item) => {
           const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+            pathname === item.href || pathname.startsWith(item.href + "/");
+          const isSoon = item.status === "soon";
+          const content = (
+            <>
+              <item.icon
+                className={cn(
+                  "h-4 w-4 shrink-0",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}
+                strokeWidth={2}
+              />
+              <span className="truncate">{item.label}</span>
+              {isSoon && (
+                <span className="ml-auto rounded-full border border-border px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  soon
+                </span>
+              )}
+            </>
+          );
+
+          if (isSoon) {
+            return (
+              <span
+                key={item.href}
+                aria-disabled="true"
+                title="Ships with its phase of the roadmap"
+                className="flex cursor-default items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground/70"
+              >
+                {content}
+              </span>
+            );
+          }
+
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold uppercase tracking-wider transition-colors",
+                "relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
               )}
             >
               {isActive && (
-                <motion.div
-                  layoutId="activeNav"
-                  className="absolute inset-0 rounded-lg border border-primary/30 bg-primary/10"
-                  transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                />
+                <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-primary" />
               )}
-              {isActive && (
-                <motion.div
-                  layoutId="activeNavGlow"
-                  className="absolute -left-px top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                  transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                />
-              )}
-              <item.icon className="relative z-10 h-4 w-4" />
-              <span className="relative z-10 text-xs">{item.label}</span>
-              {isActive && (
-                <Star className="relative z-10 ml-auto h-3 w-3 text-primary/50" />
-              )}
+              {content}
             </Link>
           );
         })}
       </nav>
 
-      {/* Decorative bottom element */}
-      <div className="mt-auto px-4 pb-4">
-        <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            v1.0 Neon Sakura
-          </p>
-        </div>
+      {/* Footer */}
+      <div className="border-t border-border px-4 py-3">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Self-hosted · Go + Postgres + Redis
+        </p>
       </div>
     </aside>
   );

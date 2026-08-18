@@ -1,8 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
-import { springTransition } from "@/components/motion/variants";
 
 interface ToggleSwitchProps {
   enabled: boolean;
@@ -12,15 +10,11 @@ interface ToggleSwitchProps {
 
 export function ToggleSwitch({ enabled, onToggle, disabled }: ToggleSwitchProps) {
   return (
-    <motion.div
-      animate={{ scale: enabled ? 1 : 0.95 }}
-      transition={springTransition}
-    >
-      <Switch
-        checked={enabled}
-        onCheckedChange={onToggle}
-        disabled={disabled}
-      />
-    </motion.div>
+    <Switch
+      checked={enabled}
+      onCheckedChange={onToggle}
+      disabled={disabled}
+      aria-label={enabled ? "Disable flag" : "Enable flag"}
+    />
   );
 }
