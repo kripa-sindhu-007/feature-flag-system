@@ -77,11 +77,10 @@ function MobileNav() {
 
 export function TopBar() {
   const pathname = usePathname();
-  const { isError, isSuccess } = useFlags();
+  const { data, isError, isSuccess } = useFlags();
 
-  // Live connection status is real today. The global config_version is a
-  // placeholder until Week 1 (D5) wires the monotonic version into the API.
   const connected = isSuccess && !isError;
+  const configVersion = data?.config_version;
 
   return (
     <header
@@ -99,7 +98,7 @@ export function TopBar() {
           local
         </span>
 
-        {/* config_version pill (placeholder until W1) */}
+        {/* Global config version — the live heartbeat of the control plane */}
         <Tooltip>
           <TooltipTrigger
             render={
@@ -109,10 +108,13 @@ export function TopBar() {
               />
             }
           >
-            config <span className="text-foreground">v—</span>
+            config{" "}
+            <span className="text-foreground">
+              v{configVersion ?? "—"}
+            </span>
           </TooltipTrigger>
           <TooltipContent>
-            Global config version — wired to the monotonic version in Week&nbsp;1
+            Global config version — bumps on every committed change
           </TooltipContent>
         </Tooltip>
 

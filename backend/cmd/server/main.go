@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/feature-flag-system/backend/internal/config"
 	"github.com/feature-flag-system/backend/internal/handler"
 	"github.com/feature-flag-system/backend/internal/middleware"
+	"github.com/feature-flag-system/backend/internal/migrate"
 	"github.com/feature-flag-system/backend/internal/repository"
 	"github.com/feature-flag-system/backend/internal/service"
 	"github.com/feature-flag-system/backend/internal/sse"
+	"github.com/feature-flag-system/backend/migrations"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -28,9 +29,9 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Run migration
-	if err := runMigration(pool); err != nil {
-		log.Fatalf("Failed to run migration: %v", err)
+	// Run migrations (ordered, run-once, idempotent)
+	if err := migrate.Run(context.Background(), pool, migrations.FS); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	// Connect to Redis
@@ -67,6 +68,7 @@ func main() {
 		r.Post("/flags", adminHandler.CreateFlag)
 		r.Get("/flags", adminHandler.ListFlags)
 		r.Get("/flags/{id}", adminHandler.GetFlag)
+		r.Get("/flags/{id}/events", adminHandler.GetFlagHistory)
 		r.Put("/flags/{id}", adminHandler.UpdateFlag)
 		r.Delete("/flags/{id}", adminHandler.DeleteFlag)
 		r.Patch("/flags/{id}/toggle", adminHandler.ToggleFlag)
@@ -84,14 +86,4 @@ func main() {
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
-}
-
-func runMigration(pool *pgxpool.Pool) error {
-	migration, err := os.ReadFile("migrations/001_create_flags.sql")
-	if err != nil {
-		log.Printf("Migration file not found, skipping: %v", err)
-		return nil
-	}
-	_, err = pool.Exec(context.Background(), string(migration))
-	return err
 }

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/feature-flag-system/backend/internal/model"
@@ -49,11 +51,35 @@ func (h *AdminHandler) ListFlags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	version, err := h.service.GetLatestVersion(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to list flags")
+		return
+	}
+
 	responses := make([]model.FlagResponse, len(flags))
 	for i, f := range flags {
 		responses[i] = f.ToResponse()
 	}
-	writeJSON(w, http.StatusOK, responses)
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"flags":          responses,
+		"config_version": version,
+	})
+}
+
+// GetFlagHistory returns the recent event-log entries for one flag (newest first).
+func (h *AdminHandler) GetFlagHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	events, err := h.service.GetFlagHistory(r.Context(), id, 50)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to get flag history")
+		return
+	}
+	if events == nil {
+		writeError(w, http.StatusNotFound, "not_found", "Flag not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"events": events})
 }
 
 func (h *AdminHandler) GetFlag(w http.ResponseWriter, r *http.Request) {
@@ -80,8 +106,20 @@ func (h *AdminHandler) UpdateFlag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Optimistic concurrency: If-Match: "<version>" guards against lost updates.
+	if ifMatch := strings.Trim(r.Header.Get("If-Match"), `"`); ifMatch != "" {
+		if v, perr := strconv.ParseInt(ifMatch, 10, 64); perr == nil {
+			req.ExpectedVersion = &v
+		}
+	}
+
 	flag, err := h.service.UpdateFlag(r.Context(), id, req)
 	if err != nil {
+		if errors.Is(err, service.ErrVersionConflict) {
+			writeError(w, http.StatusConflict, "version_conflict",
+				"This flag was changed by someone else. Reload and try again.")
+			return
+		}
 		if strings.Contains(err.Error(), "must be") {
 			writeError(w, http.StatusBadRequest, "validation_error", err.Error())
 			return

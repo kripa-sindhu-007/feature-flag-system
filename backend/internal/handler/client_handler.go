@@ -31,6 +31,7 @@ func (h *ClientHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 		Enabled           bool     `json:"enabled"`
 		RolloutPercentage int      `json:"rollout_percentage"`
 		TargetedUsers     []string `json:"targeted_users"`
+		Version           int64    `json:"version"`
 	}
 
 	result := make([]clientFlag, len(flags))
@@ -46,11 +47,21 @@ func (h *ClientHandler) GetAllFlags(w http.ResponseWriter, r *http.Request) {
 			Enabled:           f.Enabled,
 			RolloutPercentage: f.RolloutPercentage,
 			TargetedUsers:     users,
+			Version:           f.Version,
 		}
 	}
 
+	version, err := h.service.GetLatestVersion(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal_error", "Failed to get flags")
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"flags": result})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"flags":          result,
+		"config_version": version,
+	})
 }
 
 func (h *ClientHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {

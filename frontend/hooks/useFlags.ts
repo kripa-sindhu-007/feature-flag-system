@@ -8,9 +8,15 @@ import {
   type UseMutationResult,
 } from "@tanstack/react-query";
 import { flagAPI } from "@/lib/api";
-import { Flag, CreateFlagInput, UpdateFlagInput } from "@/types/flag";
+import {
+  Flag,
+  CreateFlagInput,
+  UpdateFlagInput,
+  FlagsResponse,
+  FlagEvent,
+} from "@/types/flag";
 
-export function useFlags(): UseQueryResult<Flag[]> {
+export function useFlags(): UseQueryResult<FlagsResponse> {
   return useQuery({
     queryKey: ["flags"],
     queryFn: () => flagAPI.listFlags(),
@@ -22,6 +28,17 @@ export function useFlag(id: string): UseQueryResult<Flag> {
     queryKey: ["flags", id],
     queryFn: () => flagAPI.getFlag(id),
     enabled: !!id,
+  });
+}
+
+export function useFlagHistory(
+  id: string,
+  enabled: boolean
+): UseQueryResult<FlagEvent[]> {
+  return useQuery({
+    queryKey: ["flags", id, "events"],
+    queryFn: () => flagAPI.getFlagHistory(id),
+    enabled: !!id && enabled,
   });
 }
 
@@ -42,11 +59,12 @@ export function useCreateFlag(): UseMutationResult<
 export function useUpdateFlag(): UseMutationResult<
   Flag,
   Error,
-  { id: string; input: UpdateFlagInput }
+  { id: string; input: UpdateFlagInput; expectedVersion?: number }
 > {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }) => flagAPI.updateFlag(id, input),
+    mutationFn: ({ id, input, expectedVersion }) =>
+      flagAPI.updateFlag(id, input, expectedVersion),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["flags"] });
     },

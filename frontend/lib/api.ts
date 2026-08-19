@@ -1,4 +1,10 @@
-import { Flag, CreateFlagInput, UpdateFlagInput } from "@/types/flag";
+import {
+  Flag,
+  CreateFlagInput,
+  UpdateFlagInput,
+  FlagsResponse,
+  FlagEvent,
+} from "@/types/flag";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const ADMIN_API_KEY =
@@ -35,12 +41,19 @@ class FlagAPI {
     return res.json();
   }
 
-  async listFlags(): Promise<Flag[]> {
-    return this.request<Flag[]>("/api/admin/flags");
+  async listFlags(): Promise<FlagsResponse> {
+    return this.request<FlagsResponse>("/api/admin/flags");
   }
 
   async getFlag(id: string): Promise<Flag> {
     return this.request<Flag>(`/api/admin/flags/${id}`);
+  }
+
+  async getFlagHistory(id: string): Promise<FlagEvent[]> {
+    const res = await this.request<{ events: FlagEvent[] }>(
+      `/api/admin/flags/${id}/events`
+    );
+    return res.events;
   }
 
   async createFlag(input: CreateFlagInput): Promise<Flag> {
@@ -50,10 +63,19 @@ class FlagAPI {
     });
   }
 
-  async updateFlag(id: string, input: UpdateFlagInput): Promise<Flag> {
+  async updateFlag(
+    id: string,
+    input: UpdateFlagInput,
+    expectedVersion?: number
+  ): Promise<Flag> {
+    // Send If-Match for optimistic concurrency — the server returns 409 if the
+    // flag changed since we loaded it.
+    const headers: Record<string, string> =
+      expectedVersion != null ? { "If-Match": `"${expectedVersion}"` } : {};
     return this.request<Flag>(`/api/admin/flags/${id}`, {
       method: "PUT",
       body: JSON.stringify(input),
+      headers,
     });
   }
 

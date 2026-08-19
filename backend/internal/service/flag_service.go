@@ -21,7 +21,13 @@ type FlagService interface {
 	DeleteFlag(ctx context.Context, id string) error
 	ToggleFlag(ctx context.Context, id string) (*model.Flag, error)
 	GetAllFlagConfigs(ctx context.Context) ([]model.Flag, error)
+	GetLatestVersion(ctx context.Context) (int64, error)
+	GetFlagHistory(ctx context.Context, id string, limit int) ([]model.FlagEvent, error)
 }
+
+// ErrVersionConflict is re-exported so handlers can map it to HTTP 409 without
+// importing the repository package.
+var ErrVersionConflict = repository.ErrVersionConflict
 
 type flagService struct {
 	repo   repository.FlagRepository
@@ -90,7 +96,7 @@ func (s *flagService) UpdateFlag(ctx context.Context, id string, req model.Updat
 
 	flag, err := s.repo.Update(ctx, id, req)
 	if err != nil {
-		return nil, err
+		return nil, err // includes ErrVersionConflict
 	}
 	if flag == nil {
 		return nil, nil
@@ -118,18 +124,12 @@ func (s *flagService) DeleteFlag(ctx context.Context, id string) error {
 }
 
 func (s *flagService) ToggleFlag(ctx context.Context, id string) (*model.Flag, error) {
-	flag, err := s.repo.GetByID(ctx, id)
+	updated, err := s.repo.Toggle(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if flag == nil {
+	if updated == nil {
 		return nil, nil
-	}
-
-	newEnabled := !flag.Enabled
-	updated, err := s.repo.Update(ctx, id, model.UpdateFlagRequest{Enabled: &newEnabled})
-	if err != nil {
-		return nil, err
 	}
 
 	s.publishFlagUpdate(ctx, updated)
@@ -140,15 +140,23 @@ func (s *flagService) GetAllFlagConfigs(ctx context.Context) ([]model.Flag, erro
 	return s.repo.List(ctx)
 }
 
+func (s *flagService) GetLatestVersion(ctx context.Context) (int64, error) {
+	return s.repo.GetLatestVersion(ctx)
+}
+
+func (s *flagService) GetFlagHistory(ctx context.Context, id string, limit int) ([]model.FlagEvent, error) {
+	flag, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if flag == nil {
+		return nil, nil
+	}
+	return s.repo.ListEventsByFlag(ctx, flag.Key, limit)
+}
+
 func (s *flagService) publishFlagUpdate(ctx context.Context, flag *model.Flag) {
-	data, err := json.Marshal(map[string]interface{}{
-		"id":                flag.ID,
-		"key":               flag.Key,
-		"description":       flag.Description,
-		"enabled":           flag.Enabled,
-		"rollout_percentage": flag.RolloutPercentage,
-		"targeted_users":    flag.TargetedUsers,
-	})
+	data, err := json.Marshal(flag.ToResponse())
 	if err != nil {
 		log.Printf("Error marshaling flag update: %v", err)
 		return

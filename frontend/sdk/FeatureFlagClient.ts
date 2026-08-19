@@ -6,7 +6,7 @@ interface SDKConfig {
   refreshInterval?: number;
 }
 
-function fnv1a32(input: string): number {
+export function fnv1a32(input: string): number {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);
@@ -22,6 +22,9 @@ export class FeatureFlagClient {
   private eventSource: EventSource | null = null;
   private listeners: Set<(flags: Map<string, FlagConfig>) => void>;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  // Highest global config version this client has applied. Lets it detect that
+  // it is behind the server (staleness) and ignore stale/duplicate events.
+  private configVersion = 0;
 
   constructor(config: SDKConfig) {
     this.config = config;
@@ -46,6 +49,9 @@ export class FeatureFlagClient {
     for (const flag of data.flags) {
       this.flags.set(flag.key, flag);
     }
+    if (typeof data.config_version === "number") {
+      this.configVersion = data.config_version;
+    }
 
     this.connectSSE();
 
@@ -67,6 +73,16 @@ export class FeatureFlagClient {
 
   getAllFlags(): Map<string, FlagConfig> {
     return this.flags;
+  }
+
+  /** The highest global config version this client has applied. */
+  getConfigVersion(): number {
+    return this.configVersion;
+  }
+
+  /** True if the server's version is ahead of what this client has applied. */
+  isStale(serverVersion: number): boolean {
+    return serverVersion > this.configVersion;
   }
 
   onUpdate(
@@ -105,6 +121,13 @@ export class FeatureFlagClient {
 
     this.eventSource.addEventListener("flag_updated", (e: MessageEvent) => {
       const flag: FlagConfig = JSON.parse(e.data);
+      // Ignore stale or duplicate events — only ever move the version forward.
+      if (typeof flag.version === "number" && flag.version <= this.configVersion) {
+        return;
+      }
+      if (typeof flag.version === "number") {
+        this.configVersion = flag.version;
+      }
       this.flags.set(flag.key, flag);
       this.notifyListeners();
     });

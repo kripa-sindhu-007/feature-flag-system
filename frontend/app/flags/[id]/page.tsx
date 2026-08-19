@@ -2,11 +2,13 @@
 
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FlagForm } from "@/components/flags/FlagForm";
 import { StatusBadge } from "@/components/flags/StatusBadge";
+import { FlagHistoryDrawer } from "@/components/flags/FlagHistoryDrawer";
 import { useFlag, useUpdateFlag, useDeleteFlag } from "@/hooks/useFlags";
 import { UpdateFlagInput } from "@/types/flag";
 import { toast } from "sonner";
@@ -27,16 +29,21 @@ export default function FlagDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: flag, isLoading } = useFlag(id);
   const updateFlag = useUpdateFlag();
   const deleteFlag = useDeleteFlag();
 
   const handleSubmit = (data: UpdateFlagInput) => {
     updateFlag.mutate(
-      { id, input: data },
+      { id, input: data, expectedVersion: flag?.version },
       {
         onSuccess: () => toast.success("Flag updated"),
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message);
+          // Re-sync to the latest version so a retry carries the new If-Match.
+          queryClient.invalidateQueries({ queryKey: ["flags", id] });
+        },
       }
     );
   };
@@ -95,6 +102,9 @@ export default function FlagDetailPage({
                 {flag.key}
               </h2>
               <StatusBadge enabled={flag.enabled} />
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+                v{flag.version}
+              </span>
             </div>
             {flag.description && (
               <p className="mt-1 text-sm text-muted-foreground">
@@ -103,7 +113,9 @@ export default function FlagDetailPage({
             )}
           </div>
 
-          <Dialog>
+          <div className="flex shrink-0 items-center gap-2">
+            <FlagHistoryDrawer flagId={id} />
+            <Dialog>
             <DialogTrigger
               render={<Button variant="destructive" size="sm" />}
             >
@@ -130,6 +142,7 @@ export default function FlagDetailPage({
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
@@ -142,7 +155,7 @@ export default function FlagDetailPage({
         />
       </div>
 
-      {/* Metadata — the version + history drawer lands here in Week 1 */}
+      {/* Metadata */}
       <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 text-xs text-muted-foreground">
         <span>
           Created{" "}

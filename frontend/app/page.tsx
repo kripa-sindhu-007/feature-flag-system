@@ -7,7 +7,8 @@ import { useFlags } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
 
 export default function OverviewPage() {
-  const { data: flags } = useFlags();
+  const { data } = useFlags();
+  const flags = data?.flags;
   useSSE();
 
   const total = flags?.length ?? 0;
