@@ -23,7 +23,8 @@ import { useFlags, useToggleFlag } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
 
 export function FlagList() {
-  const { data: flags, isLoading, isError } = useFlags();
+  const { data, isLoading, isError } = useFlags();
+  const flags = data?.flags;
   const toggleFlag = useToggleFlag();
   useSSE();
 
@@ -63,6 +64,7 @@ export function FlagList() {
                   <Th>Key</Th>
                   <Th className="hidden md:table-cell">Description</Th>
                   <Th className="hidden sm:table-cell">Rollout</Th>
+                  <Th className="hidden md:table-cell">Version</Th>
                   <Th className="hidden sm:table-cell">Targeting</Th>
                   <Th className="text-right">Enabled</Th>
                 </TableRow>
@@ -106,6 +108,11 @@ export function FlagList() {
                         percentage={flag.rollout_percentage}
                         active={flag.enabled}
                       />
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                        v{flag.version}
+                      </span>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {flag.targeted_users.length > 0 ? (

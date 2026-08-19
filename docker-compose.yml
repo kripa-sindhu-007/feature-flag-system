@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -10,8 +8,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # Migrations are applied by the backend's own ordered runner (internal/migrate),
+      # not the initdb hook — a single, tracked source of truth for schema changes.
       - pgdata:/var/lib/postgresql/data
-      - ./backend/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
