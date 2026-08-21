@@ -46,6 +46,13 @@ type Config struct {
 	SDKKey  string
 	// HTTPClient is optional; a sane default is used when nil.
 	HTTPClient *http.Client
+	// OnVersion, if set, is invoked for every version observed on the live SSE
+	// stream, with the wall-clock time the frame arrived. It is a passive
+	// measurement hook (used by the load driver to time end-to-end propagation)
+	// and does NOT affect apply/reconcile behavior. It defaults to nil (no-op);
+	// existing SDK usage and tests are unchanged. Implementations must be fast
+	// and non-blocking — it runs on the stream-reading goroutine.
+	OnVersion func(version int64, observedAt time.Time)
 }
 
 // Client is a concurrency-safe feature-flag client.

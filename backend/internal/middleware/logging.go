@@ -1,9 +1,11 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/feature-flag-system/backend/internal/reqid"
 )
 
 type responseWriter struct {
@@ -32,11 +34,25 @@ func (rw *responseWriter) Flush() {
 	}
 }
 
+// Logger assigns each request a correlation id (propagated in context and
+// echoed as X-Request-Id) and emits a structured slog line on completion.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+
+		id := reqid.New()
+		r = r.WithContext(reqid.With(r.Context(), id))
+		w.Header().Set("X-Request-Id", id)
+
 		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 		next.ServeHTTP(rw, r)
-		log.Printf("%s %s %d %v", r.Method, r.URL.Path, rw.statusCode, time.Since(start))
+
+		slog.Info("http request",
+			"request_id", id,
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rw.statusCode,
+			"duration_ms", float64(time.Since(start).Microseconds())/1000,
+		)
 	})
 }

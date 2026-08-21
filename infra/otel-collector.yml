@@ -1,0 +1,24 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch: {}
+
+exporters:
+  # Prints received spans to the collector's stdout so the exemplar
+  # flag.propagate -> redis.publish -> sse.broadcast trace is visible via
+  # `docker compose logs otel-collector`. Sufficient for the portfolio exemplar.
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]

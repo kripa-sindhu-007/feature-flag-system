@@ -3,9 +3,13 @@ package sse
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
+	"time"
 
+	"github.com/feature-flag-system/backend/internal/metrics"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // FlagUpdatesChannel is the Redis pub/sub channel every backend publishes flag
@@ -16,10 +20,18 @@ const FlagUpdatesChannel = "flag_updates"
 // backend's subscriber. Data is the event-specific JSON: a flag for updates, a
 // {"key": ...} object for deletes. Type doubles as the SSE event name and
 // Version as the SSE `id:`.
+//
+// Ts and Traceparent are W3-era additions and are OPTIONAL: older publishers
+// omit them (zero value), and consumers must still apply such envelopes. Ts is
+// the publish time in Unix nanoseconds, used to measure propagation latency on
+// the receiving node. Traceparent carries W3C trace context for the exemplar
+// span path.
 type Envelope struct {
-	Type    string          `json:"type"`
-	Version int64           `json:"version"`
-	Data    json.RawMessage `json:"data"`
+	Type        string          `json:"type"`
+	Version     int64           `json:"version"`
+	Data        json.RawMessage `json:"data"`
+	Ts          int64           `json:"ts,omitempty"`
+	Traceparent string          `json:"traceparent,omitempty"`
 }
 
 // Publish sends an envelope to all backends via Redis. Delivery is best-effort:
@@ -29,14 +41,30 @@ func Publish(ctx context.Context, rdb *redis.Client, eventType string, version i
 	if rdb == nil {
 		return
 	}
-	env := Envelope{Type: eventType, Version: version, Data: data}
+
+	// Exemplar: child span under the caller's flag.propagate span, plus inject
+	// W3C trace context into the envelope so the receiving node can continue it.
+	ctx, span := otel.Tracer("sse").Start(ctx, "redis.publish")
+	defer span.End()
+
+	carrier := propagation.MapCarrier{}
+	otel.GetTextMapPropagator().Inject(ctx, carrier)
+
+	env := Envelope{
+		Type:        eventType,
+		Version:     version,
+		Data:        data,
+		Ts:          time.Now().UnixNano(),
+		Traceparent: carrier["traceparent"],
+	}
 	payload, err := json.Marshal(env)
 	if err != nil {
-		log.Printf("sse: marshal envelope: %v", err)
+		slog.Error("sse: marshal envelope", "err", err)
 		return
 	}
 	if err := rdb.Publish(ctx, FlagUpdatesChannel, payload).Err(); err != nil {
-		log.Printf("sse: redis publish: %v", err)
+		metrics.IncRedisPublishError()
+		slog.Error("sse: redis publish", "err", err)
 	}
 }
 
@@ -53,13 +81,13 @@ type Broadcaster interface {
 // until ctx is cancelled.
 func Subscribe(ctx context.Context, rdb *redis.Client, broker Broadcaster) {
 	if rdb == nil {
-		log.Printf("sse: no redis client, cross-instance propagation disabled")
+		slog.Warn("sse: no redis client, cross-instance propagation disabled")
 		return
 	}
 	sub := rdb.Subscribe(ctx, FlagUpdatesChannel)
 	defer sub.Close()
 
-	log.Printf("sse: subscribed to %q", FlagUpdatesChannel)
+	slog.Info("sse: subscribed", "channel", FlagUpdatesChannel)
 	ch := sub.Channel()
 	for {
 		select {
@@ -71,9 +99,26 @@ func Subscribe(ctx context.Context, rdb *redis.Client, broker Broadcaster) {
 			}
 			var env Envelope
 			if err := json.Unmarshal([]byte(msg.Payload), &env); err != nil {
-				log.Printf("sse: bad envelope: %v", err)
+				slog.Error("sse: bad envelope", "err", err)
 				continue
 			}
+
+			// Propagation latency: publish -> consume, observed here on the
+			// receiving node. Skip when Ts is absent (older/backward-compat
+			// envelopes) so we don't record a bogus "since epoch" duration.
+			if env.Ts > 0 {
+				metrics.ObservePropagation(time.Since(time.Unix(0, env.Ts)))
+			}
+
+			// Exemplar: continue the trace from the publisher and record the
+			// receiving-node broadcast as a child span.
+			if env.Traceparent != "" {
+				carrier := propagation.MapCarrier{"traceparent": env.Traceparent}
+				bctx := otel.GetTextMapPropagator().Extract(context.Background(), carrier)
+				_, span := otel.Tracer("sse").Start(bctx, "sse.broadcast")
+				span.End()
+			}
+
 			broker.Broadcast(SSEEvent{
 				Event:   env.Type,
 				Data:    string(env.Data),
