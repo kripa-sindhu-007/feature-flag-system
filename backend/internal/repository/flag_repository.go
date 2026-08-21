@@ -26,9 +26,13 @@ type FlagRepository interface {
 	List(ctx context.Context) ([]model.Flag, error)
 	Update(ctx context.Context, id string, req model.UpdateFlagRequest) (*model.Flag, error)
 	Toggle(ctx context.Context, id string) (*model.Flag, error)
-	Delete(ctx context.Context, id string) error
+	// Delete removes a flag and returns the config version of the delete event.
+	Delete(ctx context.Context, id string) (int64, error)
 	GetLatestVersion(ctx context.Context) (int64, error)
 	ListEventsByFlag(ctx context.Context, flagKey string, limit int) ([]model.FlagEvent, error)
+	// ListEventsSince returns events with version > since, in ascending version
+	// order — the ordered backlog a client replays to reconcile after a gap.
+	ListEventsSince(ctx context.Context, since int64, limit int) ([]model.FlagEvent, error)
 }
 
 type postgresRepo struct {
@@ -256,35 +260,38 @@ func (r *postgresRepo) Toggle(ctx context.Context, id string) (*model.Flag, erro
 	return &flag, nil
 }
 
-func (r *postgresRepo) Delete(ctx context.Context, id string) error {
+func (r *postgresRepo) Delete(ctx context.Context, id string) (int64, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer tx.Rollback(ctx)
 
 	var key string
 	err = tx.QueryRow(ctx, `SELECT key FROM feature_flags WHERE id = $1`, id).Scan(&key)
 	if err == pgx.ErrNoRows {
-		return fmt.Errorf("flag not found")
+		return 0, fmt.Errorf("flag not found")
 	}
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	version, err := nextVersion(ctx, tx)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM feature_flags WHERE id = $1`, id); err != nil {
-		return err
+		return 0, err
 	}
 
 	payload, _ := json.Marshal(map[string]string{"id": id, "key": key})
 	if err := appendEvent(ctx, tx, version, "deleted", key, string(payload)); err != nil {
-		return err
+		return 0, err
 	}
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return version, nil
 }
 
 // GetLatestVersion returns the global config version = the highest committed
@@ -306,6 +313,35 @@ func (r *postgresRepo) ListEventsByFlag(ctx context.Context, flagKey string, lim
 		SELECT version, event_type, flag_key, payload, created_at
 		FROM flag_events WHERE flag_key = $1
 		ORDER BY version DESC LIMIT $2`, flagKey, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	events := []model.FlagEvent{}
+	for rows.Next() {
+		var e model.FlagEvent
+		var payload []byte
+		if err := rows.Scan(&e.Version, &e.EventType, &e.FlagKey, &payload, &e.CreatedAt); err != nil {
+			return nil, err
+		}
+		e.Payload = payload
+		events = append(events, e)
+	}
+	return events, rows.Err()
+}
+
+func (r *postgresRepo) ListEventsSince(ctx context.Context, since int64, limit int) ([]model.FlagEvent, error) {
+	if limit <= 0 {
+		limit = 500
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT version, event_type, flag_key, payload, created_at
+		FROM flag_events WHERE version > $1
+		ORDER BY version ASC LIMIT $2`, since, limit)
 	if err != nil {
 		return nil, err
 	}

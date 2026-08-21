@@ -10,6 +10,7 @@ services:
     volumes:
       # Migrations are applied by the backend's own ordered runner (internal/migrate),
       # not the initdb hook — a single, tracked source of truth for schema changes.
+      # The runner is advisory-locked, so the 3 replicas migrate safely on boot.
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -27,32 +28,73 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  # --- 3 backend replicas (D1): real cross-instance topology. Each has its own
+  # NODE_ID and directly-published port so the cluster panel can poll each node's
+  # config_version; production traffic goes through the nginx LB on :8080. ---
+  backend1: &backend
     build: ./backend
-    ports:
-      - "8080:8080"
-    environment:
+    environment: &backend-env
       PORT: "8080"
+      NODE_ID: "backend1"
       DATABASE_URL: "postgres://postgres:postgres@postgres:5432/featureflags?sslmode=disable"
       REDIS_URL: "redis://redis:6379"
       ADMIN_API_KEY: "admin-secret-key"
       SDK_API_KEY: "sdk-secret-key"
+      # Local dev: allow localhost, loopback, and the private LAN range on any
+      # port (go-chi/cors wildcard). Auth is header-based (X-*-API-Key), not
+      # cookies, so reflecting these local origins is safe here.
+      ALLOWED_ORIGINS: "http://localhost:*,http://127.0.0.1:*,http://192.168.*"
+    ports:
+      - "8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
 
+  backend2:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      NODE_ID: "backend2"
+    ports:
+      - "8082:8080"
+
+  backend3:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      NODE_ID: "backend3"
+    ports:
+      - "8083:8080"
+
+  # Load balancer: round-robins /flags & writes; SSE streams stick to one node
+  # for the connection's lifetime (proxy_buffering off keeps frames flowing).
+  lb:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend1
+      - backend2
+      - backend3
+
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      # NEXT_PUBLIC_* must be baked at build time (Next inlines them into the
+      # client bundle) — the cluster panel needs NODE_URLS to reach each node.
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:8080"
+        NEXT_PUBLIC_ADMIN_API_KEY: "admin-secret-key"
+        NEXT_PUBLIC_SDK_KEY: "sdk-secret-key"
+        NEXT_PUBLIC_NODE_URLS: "http://localhost:8081,http://localhost:8082,http://localhost:8083"
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:8080"
-      NEXT_PUBLIC_ADMIN_API_KEY: "admin-secret-key"
-      NEXT_PUBLIC_SDK_KEY: "sdk-secret-key"
     depends_on:
-      - backend
+      - lb
 
 volumes:
   pgdata:
