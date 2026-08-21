@@ -12,11 +12,29 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// advisoryLockKey serializes migration runs across processes. When several
+// backend replicas boot together (the 3-replica cluster), only one migrates at
+// a time; the others block here, then find every migration already applied and
+// skip. Without this, two racing runners double-apply DDL and crash on startup.
+const advisoryLockKey = 0x66666C6167 // "flag"
+
 // Run applies every *.sql file in fsys, in filename order, that has not already
 // been recorded in schema_migrations. Each file is applied in its own
 // transaction together with its bookkeeping row, so a failure leaves no
-// half-applied migration. Re-running Run is a no-op.
+// half-applied migration. Re-running Run is a no-op, and concurrent runs across
+// replicas are serialized by a session-level advisory lock.
 func Run(ctx context.Context, pool *pgxpool.Pool, fsys fs.FS) error {
+	// Hold the advisory lock on a dedicated connection for the whole run.
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire migration lock conn: %w", err)
+	}
+	defer conn.Release()
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, advisoryLockKey); err != nil {
+		return fmt.Errorf("acquire advisory lock: %w", err)
+	}
+	defer conn.Exec(context.Background(), `SELECT pg_advisory_unlock($1)`, advisoryLockKey)
+
 	if _, err := pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version    TEXT PRIMARY KEY,

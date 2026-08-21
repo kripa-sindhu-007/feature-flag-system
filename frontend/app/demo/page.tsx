@@ -1,14 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback, ComponentType } from "react";
+import { Plug, PlugZap, Loader2 } from "lucide-react";
 import { useFlags } from "@/hooks/useFlags";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { UserSwitcher } from "@/components/demo/UserSwitcher";
 import { DarkModeFeature } from "@/components/demo/DarkModeFeature";
 import { BetaDashboard } from "@/components/demo/BetaDashboard";
 import { AiAssistant } from "@/components/demo/AiAssistant";
 import { DynamicFlagCard } from "@/components/demo/DynamicFlagCard";
-import { FeatureFlagClient } from "@/sdk/FeatureFlagClient";
+import {
+  FeatureFlagClient,
+  type ConnectionStatus,
+} from "@/sdk/FeatureFlagClient";
 import { FlagConfig } from "@/types/flag";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -33,12 +38,18 @@ export default function DemoPage() {
   const [currentUser, setCurrentUser] = useState("user-1");
   const [allFlags, setAllFlags] = useState<Map<string, FlagConfig>>(new Map());
   const [isReady, setIsReady] = useState(false);
+  const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [clientVersion, setClientVersion] = useState(0);
 
   const syncFlags = useCallback(() => {
     setAllFlags(new Map(client.getAllFlags()));
+    setClientVersion(client.getConfigVersion());
   }, [client]);
 
   useEffect(() => {
+    const unStatus = client.onStatus(setStatus);
+    const unUpdate = client.onUpdate(syncFlags);
+
     client
       .init()
       .then(() => {
@@ -47,10 +58,9 @@ export default function DemoPage() {
       })
       .catch(() => setIsReady(true));
 
-    const unsubscribe = client.onUpdate(syncFlags);
-
     return () => {
-      unsubscribe();
+      unStatus();
+      unUpdate();
       client.destroy();
     };
   }, [client, syncFlags]);
@@ -59,11 +69,12 @@ export default function DemoPage() {
   // in sync with the latest config.
   const isOn = (key: string) => client.isEnabled(key, currentUser);
 
-  // Staleness detection (W1): compare the SDK's applied version to the server's.
+  // Staleness (W1) + reconcile (W2): the server version polls live, so while the
+  // stream is disconnected you can watch the SDK fall behind, then catch up.
   const { data } = useFlags();
   const serverVersion = data?.config_version ?? 0;
-  const clientVersion = client.getConfigVersion();
   const stale = isReady && client.isStale(serverVersion);
+  const offline = status === "offline";
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -105,6 +116,17 @@ export default function DemoPage() {
         )}
       </div>
 
+      {isReady && (
+        <ReconnectPanel
+          status={status}
+          stale={stale}
+          offline={offline}
+          missed={Math.max(0, serverVersion - clientVersion)}
+          onDisconnect={() => client.disconnect()}
+          onReconnect={() => client.reconnect()}
+        />
+      )}
+
       <UserSwitcher currentUser={currentUser} onUserChange={setCurrentUser} />
 
       {!isReady ? (
@@ -135,6 +157,78 @@ export default function DemoPage() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+const STATUS_META: Record<
+  ConnectionStatus,
+  { label: string; dot: string; text: string }
+> = {
+  connecting: { label: "Connecting", dot: "bg-warning", text: "text-warning" },
+  live: { label: "Live", dot: "bg-success", text: "text-success" },
+  reconnecting: { label: "Reconnecting", dot: "bg-warning", text: "text-warning" },
+  reconciling: { label: "Reconciling", dot: "bg-primary", text: "text-primary" },
+  offline: { label: "Disconnected", dot: "bg-destructive", text: "text-destructive" },
+};
+
+function ReconnectPanel({
+  status,
+  stale,
+  offline,
+  missed,
+  onDisconnect,
+  onReconnect,
+}: {
+  status: ConnectionStatus;
+  stale: boolean;
+  offline: boolean;
+  missed: number;
+  onDisconnect: () => void;
+  onReconnect: () => void;
+}) {
+  const meta = STATUS_META[status];
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className="inline-flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium"
+            aria-live="polite"
+          >
+            {status === "reconciling" ? (
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+            ) : (
+              <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot)} />
+            )}
+            <span className={meta.text}>{meta.label}</span>
+          </span>
+          <p className="text-sm text-muted-foreground">
+            {offline
+              ? missed > 0
+                ? `Stream closed — ${missed} update${missed > 1 ? "s" : ""} missed. Reconnect to reconcile.`
+                : "Stream closed. Make changes in Flags, then reconnect."
+              : stale
+              ? "Behind — reconciling to the latest version…"
+              : "Streaming live from the control plane."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDisconnect}
+            disabled={offline}
+          >
+            <Plug className="h-3.5 w-3.5" />
+            Disconnect
+          </Button>
+          <Button size="sm" onClick={onReconnect} disabled={!offline}>
+            <PlugZap className="h-3.5 w-3.5" />
+            Reconnect
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -46,11 +46,16 @@ func main() {
 	broker := sse.NewBroker()
 	go broker.Run()
 
+	// Redis subscriber: consume flag_events published by ANY backend and fan
+	// them out to this node's local SSE clients. This is what makes propagation
+	// cross-instance — a write on one replica reaches clients on all of them.
+	go sse.Subscribe(context.Background(), rdb, broker)
+
 	// Service and handlers
 	repo := repository.NewPostgresRepository(pool)
 	svc := service.NewFlagService(repo, rdb, broker)
 	adminHandler := handler.NewAdminHandler(svc)
-	clientHandler := handler.NewClientHandler(svc, broker)
+	clientHandler := handler.NewClientHandler(svc, broker, cfg.NodeID)
 
 	// Router
 	r := chi.NewRouter()
@@ -79,10 +84,12 @@ func main() {
 		r.Use(middleware.SDKAuth(cfg.SDKAPIKey))
 		r.Get("/flags", clientHandler.GetAllFlags)
 		r.Get("/stream", clientHandler.StreamEvents)
+		r.Get("/events", clientHandler.Reconcile)
+		r.Get("/version", clientHandler.Version)
 	})
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
-	log.Printf("Server starting on %s", addr)
+	log.Printf("Server [%s] starting on %s", cfg.NodeID, addr)
 	if err := http.ListenAndServe(addr, r); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}

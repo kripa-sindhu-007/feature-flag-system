@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Menu, Flag, FlaskConical } from "lucide-react";
+import { Sun, Moon, Menu, Flag, FlaskConical, Boxes } from "lucide-react";
 import { useFlags } from "@/hooks/useFlags";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +69,9 @@ function MobileNav() {
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/demo" />}>
           <FlaskConical className="h-4 w-4" /> Demo
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/cluster" />}>
+          <Boxes className="h-4 w-4" /> Cluster
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

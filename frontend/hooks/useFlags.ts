@@ -20,6 +20,9 @@ export function useFlags(): UseQueryResult<FlagsResponse> {
   return useQuery({
     queryKey: ["flags"],
     queryFn: () => flagAPI.listFlags(),
+    // Poll so the config-version heartbeat (TopBar pill, demo staleness) stays
+    // live even when the SDK stream is intentionally disconnected.
+    refetchInterval: 2500,
   });
 }
 

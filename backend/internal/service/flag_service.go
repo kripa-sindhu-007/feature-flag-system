@@ -23,6 +23,7 @@ type FlagService interface {
 	GetAllFlagConfigs(ctx context.Context) ([]model.Flag, error)
 	GetLatestVersion(ctx context.Context) (int64, error)
 	GetFlagHistory(ctx context.Context, id string, limit int) ([]model.FlagEvent, error)
+	GetEventsSince(ctx context.Context, since int64, limit int) ([]model.FlagEvent, error)
 }
 
 // ErrVersionConflict is re-exported so handlers can map it to HTTP 409 without
@@ -115,11 +116,12 @@ func (s *flagService) DeleteFlag(ctx context.Context, id string) error {
 		return fmt.Errorf("flag not found")
 	}
 
-	if err := s.repo.Delete(ctx, id); err != nil {
+	version, err := s.repo.Delete(ctx, id)
+	if err != nil {
 		return err
 	}
 
-	s.publishFlagDelete(ctx, flag.Key)
+	s.publishFlagDelete(ctx, flag.Key, version)
 	return nil
 }
 
@@ -155,30 +157,27 @@ func (s *flagService) GetFlagHistory(ctx context.Context, id string, limit int) 
 	return s.repo.ListEventsByFlag(ctx, flag.Key, limit)
 }
 
+func (s *flagService) GetEventsSince(ctx context.Context, since int64, limit int) ([]model.FlagEvent, error) {
+	return s.repo.ListEventsSince(ctx, since, limit)
+}
+
+// publishFlagUpdate publishes a versioned envelope to Redis. It does NOT
+// broadcast locally: this node's own subscriber consumes the envelope and fans
+// it out, so every backend (publisher included) delivers via one uniform path.
 func (s *flagService) publishFlagUpdate(ctx context.Context, flag *model.Flag) {
 	data, err := json.Marshal(flag.ToResponse())
 	if err != nil {
 		log.Printf("Error marshaling flag update: %v", err)
 		return
 	}
-
-	s.broker.Broadcast(sse.SSEEvent{Event: "flag_updated", Data: string(data)})
-
-	if s.rdb != nil {
-		s.rdb.Publish(ctx, "flag_updates", string(data))
-	}
+	sse.Publish(ctx, s.rdb, "flag_updated", flag.Version, data)
 }
 
-func (s *flagService) publishFlagDelete(ctx context.Context, key string) {
+func (s *flagService) publishFlagDelete(ctx context.Context, key string, version int64) {
 	data, err := json.Marshal(map[string]string{"key": key})
 	if err != nil {
 		log.Printf("Error marshaling flag delete: %v", err)
 		return
 	}
-
-	s.broker.Broadcast(sse.SSEEvent{Event: "flag_deleted", Data: string(data)})
-
-	if s.rdb != nil {
-		s.rdb.Publish(ctx, "flag_updates", string(data))
-	}
+	sse.Publish(ctx, s.rdb, "flag_deleted", version, data)
 }
