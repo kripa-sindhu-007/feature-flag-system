@@ -53,11 +53,15 @@ async function fetchReadyz(url: string): Promise<NodeReadiness> {
   }
 }
 
-export function useReadiness(): UseQueryResult<NodeReadiness[]> {
+// Default 4s for the Health page; the Resilience view passes a faster interval
+// so a chaos-injected node drop/return is visible near-live.
+export function useReadiness(
+  refetchInterval = 4000
+): UseQueryResult<NodeReadiness[]> {
   return useQuery({
     queryKey: ["readiness"],
     queryFn: () => Promise.all(NODE_URLS.map(fetchReadyz)),
-    refetchInterval: 4000,
+    refetchInterval,
   });
 }
 
@@ -87,6 +91,35 @@ async function promScalar(query: string): Promise<number | null> {
 
 const P = (q: number) =>
   `histogram_quantile(${q}, sum(rate(config_propagation_seconds_bucket[5m])) by (le))`;
+
+export interface RedisPublishErrors {
+  /** Cumulative redis publish errors across the fleet, or null when unavailable. */
+  total: number | null;
+  /** True when Prometheus could not be reached. */
+  unavailable: boolean;
+}
+
+/**
+ * redis_publish_errors_total is the propagation-path health signal: it climbs
+ * while Redis is unreachable (chaos/redis-down) — writes still succeed against
+ * Postgres (durable source of truth), but cross-node fan-out is degraded until
+ * reconnect. Polled fast so the Resilience view reflects a `redis-down` window.
+ */
+export function useRedisPublishErrors(): UseQueryResult<RedisPublishErrors> {
+  return useQuery({
+    queryKey: ["redis-publish-errors"],
+    queryFn: async (): Promise<RedisPublishErrors> => {
+      try {
+        const total = await promScalar("sum(redis_publish_errors_total)");
+        return { total: total ?? 0, unavailable: false };
+      } catch {
+        return { total: null, unavailable: true };
+      }
+    },
+    refetchInterval: 2000,
+    retry: false,
+  });
+}
 
 export function useFleetMetrics(): UseQueryResult<FleetMetrics> {
   return useQuery({

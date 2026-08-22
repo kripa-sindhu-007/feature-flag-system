@@ -6,17 +6,15 @@ import {
   FlagEvent,
 } from "@/types/flag";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-const ADMIN_API_KEY =
-  process.env.NEXT_PUBLIC_ADMIN_API_KEY || "admin-secret-key";
-
+// Admin mutations go through same-origin Next route handlers under
+// /api/admin/** (see app/api/admin/**). Those run server-side and inject the
+// admin API key from the non-public ADMIN_API_KEY env, so the key never reaches
+// this client bundle. baseUrl is empty => relative, same-origin fetches.
 class FlagAPI {
   private baseUrl: string;
-  private apiKey: string;
 
-  constructor(baseUrl: string, apiKey: string) {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-    this.apiKey = apiKey;
   }
 
   private async request<T>(
@@ -27,7 +25,6 @@ class FlagAPI {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "X-Admin-API-Key": this.apiKey,
         ...options.headers,
       },
     });
@@ -92,4 +89,4 @@ class FlagAPI {
   }
 }
 
-export const flagAPI = new FlagAPI(API_URL, ADMIN_API_KEY);
+export const flagAPI = new FlagAPI("");
