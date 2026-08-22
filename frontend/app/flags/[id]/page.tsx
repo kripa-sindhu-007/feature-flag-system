@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Trash2 } from "lucide-react";
@@ -30,7 +30,10 @@ export default function FlagDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: flag, isLoading } = useFlag(id);
+  // Once a delete is in flight the flag is gone; disable its detail query so no
+  // observer re-requests a 404'd resource during the navigate-away transition.
+  const [deleting, setDeleting] = useState(false);
+  const { data: flag, isLoading } = useFlag(id, !deleting);
   const updateFlag = useUpdateFlag();
   const deleteFlag = useDeleteFlag();
 
@@ -49,12 +52,21 @@ export default function FlagDetailPage({
   };
 
   const handleDelete = () => {
+    // Disable + cancel the detail query up-front, before the row disappears.
+    setDeleting(true);
+    queryClient.cancelQueries({ queryKey: ["flags", id] });
     deleteFlag.mutate(id, {
       onSuccess: () => {
         toast.success("Flag deleted");
+        // Drop the now-deleted flag's cached detail query so nothing re-requests
+        // a 404'd resource during navigation.
+        queryClient.removeQueries({ queryKey: ["flags", id] });
         router.push("/flags");
       },
-      onError: (error) => toast.error(error.message),
+      onError: (error) => {
+        setDeleting(false);
+        toast.error(error.message);
+      },
     });
   };
 

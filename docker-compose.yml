@@ -145,12 +145,18 @@ services:
       # client bundle) — the cluster panel needs NODE_URLS to reach each node.
       args:
         NEXT_PUBLIC_API_URL: "http://localhost:8080"
-        NEXT_PUBLIC_ADMIN_API_KEY: "admin-secret-key"
         NEXT_PUBLIC_SDK_KEY: "sdk-secret-key"
         NEXT_PUBLIC_NODE_URLS: "http://localhost:8081,http://localhost:8082,http://localhost:8083"
         # W3 health page: Prometheus query API for fleet metrics + Grafana link-out.
         NEXT_PUBLIC_PROMETHEUS_URL: "http://localhost:9090"
         NEXT_PUBLIC_GRAFANA_URL: "http://localhost:3001"
+    # W4 D3 security fix: the admin key is a RUNTIME server env (never a build
+    # arg, never NEXT_PUBLIC_*), consumed only by the server-side BFF proxy in
+    # app/api/admin/**. API_INTERNAL_URL is the Next server's path to the backend
+    # over the docker network (the browser only ever calls same-origin /api/admin).
+    environment:
+      ADMIN_API_KEY: "admin-secret-key"
+      API_INTERNAL_URL: "http://lb:8080"
     ports:
       - "3000:3000"
     depends_on:

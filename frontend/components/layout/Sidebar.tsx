@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flag, FlaskConical, Boxes, Activity } from "lucide-react";
+import { Flag, FlaskConical, Boxes, Activity, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -12,12 +12,13 @@ type NavItem = {
   status?: "live" | "soon";
 };
 
-// Flags + Demo + Cluster + Health are live. Chaos (W4) lands with its phase.
+// Flags + Demo + Cluster + Health + Resilience (W4) are live.
 const navItems: NavItem[] = [
   { href: "/flags", label: "Flags", icon: Flag, status: "live" },
   { href: "/demo", label: "Demo", icon: FlaskConical, status: "live" },
   { href: "/cluster", label: "Cluster", icon: Boxes, status: "live" },
   { href: "/health", label: "Health", icon: Activity, status: "live" },
+  { href: "/resilience", label: "Resilience", icon: ShieldCheck, status: "live" },
 ];
 
 export function Sidebar() {

@@ -26,11 +26,15 @@ export function useFlags(): UseQueryResult<FlagsResponse> {
   });
 }
 
-export function useFlag(id: string): UseQueryResult<Flag> {
+export function useFlag(id: string, enabled = true): UseQueryResult<Flag> {
   return useQuery({
     queryKey: ["flags", id],
     queryFn: () => flagAPI.getFlag(id),
-    enabled: !!id,
+    enabled: !!id && enabled,
+    // The detail view is loaded fresh on navigation and kept current via
+    // mutation invalidation; a window-focus refetch during a delete→navigate
+    // transition would re-request the just-deleted flag and log a 404.
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -79,7 +83,9 @@ export function useDeleteFlag(): UseMutationResult<void, Error, string> {
   return useMutation({
     mutationFn: (id: string) => flagAPI.deleteFlag(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["flags"] });
+      // Exact: only refresh the list. A prefix match would also invalidate the
+      // deleted flag's detail query (["flags", id]) and re-request a 404.
+      queryClient.invalidateQueries({ queryKey: ["flags"], exact: true });
     },
   });
 }

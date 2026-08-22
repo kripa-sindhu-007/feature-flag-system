@@ -50,6 +50,21 @@ func (c *Client) streamLoop(ctx context.Context) {
 	}
 }
 
+// StreamOnce opens exactly one SSE connection and applies frames until the
+// stream ends, the server closes it, or ctx is cancelled — then returns. Unlike
+// Start it does NOT auto-reconnect or wrap the connection in the backoff loop,
+// so the caller owns the connection's lifetime and can deliberately cut it (by
+// cancelling ctx) to simulate a disconnect. A gap on the live stream still
+// triggers an inline reconcile, exactly as under Start. It is a thin, additive
+// wrapper around the internal stream loop; Bootstrap must have been called (or
+// Start) so the client has a baseline version to detect gaps against.
+//
+// This is the controllable-disconnect primitive the chaos/soak drivers use; it
+// changes no existing behavior.
+func (c *Client) StreamOnce(ctx context.Context) error {
+	return c.stream(ctx)
+}
+
 // stream opens one SSE connection and applies frames until it ends. A gap
 // (non-contiguous version) triggers an inline reconcile.
 func (c *Client) stream(ctx context.Context) error {

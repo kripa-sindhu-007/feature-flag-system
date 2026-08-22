@@ -12,6 +12,12 @@ export function createSSEConnection(
   url: string = API_URL,
   sdkKey: string = SDK_KEY
 ): EventSource {
+  // NOTE (residual by design): the browser EventSource API cannot set request
+  // headers, so the SDK key rides in the query string here. This is the SDK key
+  // (read-only flag stream), not the admin key — admin mutations go through the
+  // same-origin BFF proxy and never expose a key. Where a client call is a plain
+  // fetch (e.g. useCluster's /api/client/version) we use the X-SDK-Key header
+  // instead; only EventSource is forced to ?key=.
   const eventSource = new EventSource(
     `${url}/api/client/stream?key=${sdkKey}`
   );

@@ -367,6 +367,30 @@ go run ./cmd/loadgen -mode eval -eval-duration 8s -eval-workers 1
 
 ---
 
+## Reliability (chaos & soak)
+
+Reliability is *proven*, not asserted. Reproducible chaos scripts under
+[`chaos/`](chaos) inject real faults into the running cluster — backend crash,
+Redis down, Postgres down, SSE disconnect, missed events, concurrent writers —
+and each **asserts its invariant** (version monotonicity, convergence, durability,
+no-corruption) and exits non-zero on any violation. A soak runner drives a
+continuous mixed workload with an online invariant checker.
+
+- All six chaos scenarios pass; a 22-minute soak (40+6 clients, 302k evals, 829
+  reconnects) ran with **zero invariant violations**.
+- Chaos testing also surfaced and fixed a real resilience gap — nginx's default
+  60s `proxy_connect_timeout` stalled the LB when a node died (now bounded + fails
+  over to survivors).
+- Full method, results and honest findings: **[docs/CHAOS.md](docs/CHAOS.md)**.
+- Guarantees, key decisions, and known limitations: **[docs/LIMITATIONS.md](docs/LIMITATIONS.md)**.
+
+```bash
+chaos/run-all.sh                      # whole matrix, PASS/FAIL summary
+cd backend && go run ./cmd/soak -duration 22m -clients 40 -churn 6
+```
+
+---
+
 ## Roadmap
 
 **Delivered**
@@ -376,11 +400,12 @@ go run ./cmd/loadgen -mode eval -eval-duration 8s -eval-workers 1
 - [x] Gap-free client reconciliation after disconnects, for both the TS and Go SDKs
 - [x] Observability — Prometheus metrics, Grafana dashboard, OpenTelemetry exemplar trace, structured logging
 - [x] Real `/readyz` readiness, graceful SSE-draining shutdown, and a load harness with measured benchmarks
+- [x] Chaos & soak testing — scripted node/Redis/Postgres failures with continuous invariant checks ([docs/CHAOS.md](docs/CHAOS.md))
+- [x] Security hardening — admin key moved server-side via a Next.js BFF proxy (out of the browser bundle)
 
 **Next**
 
-- [ ] Chaos & soak testing — scripted node/Redis/Postgres failures with continuous invariant checks
-- [ ] Security hardening — move the admin key server-side (out of the browser bundle) and the SDK key out of the URL
+- [ ] User auth + RBAC for the dashboard, and an audit log (who changed what, when)
 - [ ] A/B testing with variant assignment and metric tracking
 - [ ] Audit log for flag changes (who changed what, when)
 - [ ] Published SDK packages (npm, Go module) for external integration
