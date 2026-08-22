@@ -44,6 +44,10 @@ services:
       # port (go-chi/cors wildcard). Auth is header-based (X-*-API-Key), not
       # cookies, so reflecting these local origins is safe here.
       ALLOWED_ORIGINS: "http://localhost:*,http://127.0.0.1:*,http://192.168.*"
+      # Exemplar tracing (best-effort): exports the flag.propagate span to the
+      # OTLP/HTTP collector. If the collector is down the batch exporter just
+      # drops spans — it never blocks or fails a flag write, so no depends_on.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
     ports:
       - "8081:8080"
     depends_on:
@@ -76,10 +80,63 @@ services:
       - "8080:8080"
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    # Match nginx worker_rlimit_nofile so it can actually open the raised
+    # worker_connections' worth of fds (each SSE stream = client + upstream fd).
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     depends_on:
       - backend1
       - backend2
       - backend3
+
+  # --- Week 3 observability infra ---
+
+  # OTLP/HTTP + gRPC receiver -> debug exporter, so the exemplar
+  # flag.propagate -> redis.publish -> sse.broadcast span is visible in
+  # `docker compose logs otel-collector`. Best-effort target for the backends;
+  # nothing depends on it, and its being down never breaks a flag write.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infra/otel-collector.yml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4318:4318"
+      - "4317:4317"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=6h"
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend1
+      - backend2
+      - backend3
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    environment:
+      # Local demo only: default admin/admin, plus anonymous viewer so the
+      # dashboard opens with zero friction. Do NOT reuse these in production.
+      GF_SECURITY_ADMIN_USER: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
 
   frontend:
     build:
@@ -91,6 +148,9 @@ services:
         NEXT_PUBLIC_ADMIN_API_KEY: "admin-secret-key"
         NEXT_PUBLIC_SDK_KEY: "sdk-secret-key"
         NEXT_PUBLIC_NODE_URLS: "http://localhost:8081,http://localhost:8082,http://localhost:8083"
+        # W3 health page: Prometheus query API for fleet metrics + Grafana link-out.
+        NEXT_PUBLIC_PROMETHEUS_URL: "http://localhost:9090"
+        NEXT_PUBLIC_GRAFANA_URL: "http://localhost:3001"
     ports:
       - "3000:3000"
     depends_on:
@@ -98,3 +158,4 @@ services:
 
 volumes:
   pgdata:
+  grafana-data:

@@ -1,10 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { Flag, FlaskConical, ArrowRight, Power, Percent, Users } from "lucide-react";
+import {
+  Flag,
+  FlaskConical,
+  ArrowRight,
+  Power,
+  Percent,
+  Users,
+  Activity,
+  Radio,
+  Gauge,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFlags } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
+import { useReadiness, useFleetMetrics } from "@/hooks/useHealth";
+import { cn } from "@/lib/utils";
 
 export default function OverviewPage() {
   const { data } = useFlags();
@@ -43,6 +55,9 @@ export default function OverviewPage() {
         <StatTile icon={Users} label="With targeting" value={targeted} />
       </div>
 
+      {/* Health strip */}
+      <HealthStrip />
+
       {/* Quick actions */}
       <div className="grid gap-4 md:grid-cols-2">
         <ActionCard
@@ -62,6 +77,91 @@ export default function OverviewPage() {
         />
       </div>
     </div>
+  );
+}
+
+function ms(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds)) return "—";
+  const v = seconds * 1000;
+  return v >= 100 ? Math.round(v).toString() : v.toFixed(1);
+}
+
+function HealthStrip() {
+  const { data: nodes } = useReadiness();
+  const { data: metrics } = useFleetMetrics();
+
+  const nodeList = nodes ?? [];
+  const readyCount = nodeList.filter((n) => n.ready).length;
+  const total = nodeList.length;
+  const allReady = total > 0 && readyCount === total;
+
+  return (
+    <Link
+      href="/health"
+      className="group flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted"
+    >
+      <span className="inline-flex items-center gap-2">
+        <Activity className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Fleet health
+        </span>
+      </span>
+
+      <span className="inline-flex items-center gap-1.5">
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            total === 0
+              ? "bg-muted-foreground/60"
+              : allReady
+              ? "bg-success"
+              : "bg-warning"
+          )}
+        />
+        <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+          {total === 0 ? "—" : `${readyCount}/${total}`}
+        </span>
+        <span className="text-xs text-muted-foreground">ready</span>
+      </span>
+
+      <StripMetric
+        icon={Radio}
+        value={
+          metrics?.unavailable ? null : metrics?.sseClients ?? null
+        }
+        unit="SSE"
+      />
+      <StripMetric
+        icon={Gauge}
+        value={metrics?.unavailable ? null : ms(metrics?.propagationP99 ?? null)}
+        unit="ms p99"
+      />
+
+      <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+        Health
+        <ArrowRight className="h-3.5 w-3.5" />
+      </span>
+    </Link>
+  );
+}
+
+function StripMetric({
+  icon: Icon,
+  value,
+  unit,
+}: {
+  icon: typeof Radio;
+  value: string | number | null;
+  unit: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
+      <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+        {value ?? "—"}
+      </span>
+      <span className="text-xs text-muted-foreground">{unit}</span>
+    </span>
   );
 }
 

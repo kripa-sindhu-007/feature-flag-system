@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"regexp"
 
+	"github.com/feature-flag-system/backend/internal/metrics"
 	"github.com/feature-flag-system/backend/internal/model"
 	"github.com/feature-flag-system/backend/internal/repository"
+	"github.com/feature-flag-system/backend/internal/reqid"
 	"github.com/feature-flag-system/backend/internal/sse"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel"
 )
 
 type FlagService interface {
@@ -78,7 +81,7 @@ func (s *flagService) CreateFlag(ctx context.Context, req model.CreateFlagReques
 		return nil, err
 	}
 
-	s.publishFlagUpdate(ctx, flag)
+	s.publishFlagUpdate(ctx, flag, "created")
 	return flag, nil
 }
 
@@ -103,7 +106,7 @@ func (s *flagService) UpdateFlag(ctx context.Context, id string, req model.Updat
 		return nil, nil
 	}
 
-	s.publishFlagUpdate(ctx, flag)
+	s.publishFlagUpdate(ctx, flag, "updated")
 	return flag, nil
 }
 
@@ -134,7 +137,7 @@ func (s *flagService) ToggleFlag(ctx context.Context, id string) (*model.Flag, e
 		return nil, nil
 	}
 
-	s.publishFlagUpdate(ctx, updated)
+	s.publishFlagUpdate(ctx, updated, "toggled")
 	return updated, nil
 }
 
@@ -164,19 +167,38 @@ func (s *flagService) GetEventsSince(ctx context.Context, since int64, limit int
 // publishFlagUpdate publishes a versioned envelope to Redis. It does NOT
 // broadcast locally: this node's own subscriber consumes the envelope and fans
 // it out, so every backend (publisher included) delivers via one uniform path.
-func (s *flagService) publishFlagUpdate(ctx context.Context, flag *model.Flag) {
+// action is the mutation kind (created/updated/toggled) used for metrics and
+// logs; the SSE wire event type stays "flag_updated" for backward compat.
+func (s *flagService) publishFlagUpdate(ctx context.Context, flag *model.Flag, action string) {
+	// Exemplar span: the admin-commit origin of the one traced propagation path.
+	ctx, span := otel.Tracer("flag-service").Start(ctx, "flag.propagate")
+	defer span.End()
+
+	metrics.ObserveFlagUpdate(action)
+	slog.Info("flag mutated",
+		"action", action, "key", flag.Key, "version", flag.Version,
+		"request_id", reqid.From(ctx))
+
 	data, err := json.Marshal(flag.ToResponse())
 	if err != nil {
-		log.Printf("Error marshaling flag update: %v", err)
+		slog.Error("marshaling flag update", "err", err, "key", flag.Key)
 		return
 	}
 	sse.Publish(ctx, s.rdb, "flag_updated", flag.Version, data)
 }
 
 func (s *flagService) publishFlagDelete(ctx context.Context, key string, version int64) {
+	ctx, span := otel.Tracer("flag-service").Start(ctx, "flag.propagate")
+	defer span.End()
+
+	metrics.ObserveFlagUpdate("deleted")
+	slog.Info("flag mutated",
+		"action", "deleted", "key", key, "version", version,
+		"request_id", reqid.From(ctx))
+
 	data, err := json.Marshal(map[string]string{"key": key})
 	if err != nil {
-		log.Printf("Error marshaling flag delete: %v", err)
+		slog.Error("marshaling flag delete", "err", err, "key", key)
 		return
 	}
 	sse.Publish(ctx, s.rdb, "flag_deleted", version, data)

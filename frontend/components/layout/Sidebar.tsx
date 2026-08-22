@@ -12,12 +12,12 @@ type NavItem = {
   status?: "live" | "soon";
 };
 
-// Flags + Demo + Cluster are live. Health (W3) lands with its phase.
+// Flags + Demo + Cluster + Health are live. Chaos (W4) lands with its phase.
 const navItems: NavItem[] = [
   { href: "/flags", label: "Flags", icon: Flag, status: "live" },
   { href: "/demo", label: "Demo", icon: FlaskConical, status: "live" },
   { href: "/cluster", label: "Cluster", icon: Boxes, status: "live" },
-  { href: "/health", label: "Health", icon: Activity, status: "soon" },
+  { href: "/health", label: "Health", icon: Activity, status: "live" },
 ];
 
 export function Sidebar() {

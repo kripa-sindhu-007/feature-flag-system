@@ -221,6 +221,37 @@ The SDK and server evaluate flags in the same order:
 
 ---
 
+## Benchmarks (measured)
+
+Real numbers from the Go-SDK load driver ([`backend/cmd/loadgen`](backend/cmd/loadgen))
+against the running 3-node cluster on an **Apple M5 (10 cores, 16 GB)** laptop —
+single-host `docker compose`, so backends, Postgres, Redis, nginx and the harness
+all share one machine. Measured, never extrapolated. Full methodology, tables and
+the ceiling analysis: **[docs/BENCHMARKS.md](docs/BENCHMARKS.md)**.
+
+- **Propagation p50 ≈ 3–17 ms, p99 ≈ 13–33 ms** end-to-end — admin commit →
+  Redis → SSE fan-out → client applied — from **100 up to 2 000** connected SSE
+  clients, all at **100 % delivery**; still 100 % delivery at **5 000** clients
+  (p50 ≈ 36 ms, p99 ≈ 192 ms).
+- **Local flag evaluation ≈ 74 M evals/sec single-core** (~13.5 ns/eval, pure
+  CPU FNV-1a + map lookup, zero network).
+- **≈ 85 KB heap + ~4 goroutines per connected client** (client-side).
+- **Ceiling ≈ 5 000 SSE clients** on this single host — bounded by host CPU /
+  scheduler saturation with the load harness co-resident (nginx is tuned to
+  `worker_connections 16384`, so it's no longer the limit; the backends aren't
+  either). Past ~8 000, delivery slips below 100 % and p99 explodes to ~1.9 s.
+  Stated honestly rather than hidden.
+
+Run them yourself:
+
+```bash
+cd backend
+go run ./cmd/loadgen -mode propagation -clients 200 -updates 20 -eval-rate 10
+go run ./cmd/loadgen -mode eval -eval-duration 8s -eval-workers 1
+```
+
+---
+
 ## Roadmap
 
 - [ ] A/B testing with variant assignment and metric tracking

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/feature-flag-system/backend/internal/metrics"
 	"github.com/feature-flag-system/backend/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -72,6 +73,7 @@ func flagPayload(f *model.Flag) string {
 }
 
 func (r *postgresRepo) Create(ctx context.Context, flag *model.Flag) error {
+	defer metrics.TimeDB("create")()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -101,6 +103,7 @@ func (r *postgresRepo) Create(ctx context.Context, flag *model.Flag) error {
 }
 
 func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.Flag, error) {
+	defer metrics.TimeDB("get_by_id")()
 	var flag model.Flag
 	err := scanFlag(r.pool.QueryRow(ctx,
 		`SELECT `+flagColumns+` FROM feature_flags WHERE id = $1`, id), &flag)
@@ -114,6 +117,7 @@ func (r *postgresRepo) GetByID(ctx context.Context, id string) (*model.Flag, err
 }
 
 func (r *postgresRepo) GetByKey(ctx context.Context, key string) (*model.Flag, error) {
+	defer metrics.TimeDB("get_by_key")()
 	var flag model.Flag
 	err := scanFlag(r.pool.QueryRow(ctx,
 		`SELECT `+flagColumns+` FROM feature_flags WHERE key = $1`, key), &flag)
@@ -127,6 +131,7 @@ func (r *postgresRepo) GetByKey(ctx context.Context, key string) (*model.Flag, e
 }
 
 func (r *postgresRepo) List(ctx context.Context) ([]model.Flag, error) {
+	defer metrics.TimeDB("list")()
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+flagColumns+` FROM feature_flags ORDER BY created_at DESC`)
 	if err != nil {
@@ -149,6 +154,7 @@ func (r *postgresRepo) List(ctx context.Context) ([]model.Flag, error) {
 // version and appending an event. If req.ExpectedVersion is set, the write only
 // applies when the flag's current version matches, else ErrVersionConflict.
 func (r *postgresRepo) Update(ctx context.Context, id string, req model.UpdateFlagRequest) (*model.Flag, error) {
+	defer metrics.TimeDB("update")()
 	setClauses := []string{}
 	args := []interface{}{}
 	add := func(col string, val interface{}) {
@@ -228,6 +234,7 @@ func (r *postgresRepo) Update(ctx context.Context, id string, req model.UpdateFl
 // Toggle flips enabled in a single atomic statement — no read-modify-write race,
 // so concurrent toggles never lose an update.
 func (r *postgresRepo) Toggle(ctx context.Context, id string) (*model.Flag, error) {
+	defer metrics.TimeDB("toggle")()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -261,6 +268,7 @@ func (r *postgresRepo) Toggle(ctx context.Context, id string) (*model.Flag, erro
 }
 
 func (r *postgresRepo) Delete(ctx context.Context, id string) (int64, error) {
+	defer metrics.TimeDB("delete")()
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return 0, err
@@ -297,12 +305,14 @@ func (r *postgresRepo) Delete(ctx context.Context, id string) (int64, error) {
 // GetLatestVersion returns the global config version = the highest committed
 // event version (0 if nothing has ever been written).
 func (r *postgresRepo) GetLatestVersion(ctx context.Context) (int64, error) {
+	defer metrics.TimeDB("get_latest_version")()
 	var v int64
 	err := r.pool.QueryRow(ctx, `SELECT COALESCE(MAX(version), 0) FROM flag_events`).Scan(&v)
 	return v, err
 }
 
 func (r *postgresRepo) ListEventsByFlag(ctx context.Context, flagKey string, limit int) ([]model.FlagEvent, error) {
+	defer metrics.TimeDB("list_events_by_flag")()
 	if limit <= 0 {
 		limit = 50
 	}
@@ -332,6 +342,7 @@ func (r *postgresRepo) ListEventsByFlag(ctx context.Context, flagKey string, lim
 }
 
 func (r *postgresRepo) ListEventsSince(ctx context.Context, since int64, limit int) ([]model.FlagEvent, error) {
+	defer metrics.TimeDB("list_events_since")()
 	if limit <= 0 {
 		limit = 500
 	}

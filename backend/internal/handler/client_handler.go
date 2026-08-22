@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/feature-flag-system/backend/internal/metrics"
 	"github.com/feature-flag-system/backend/internal/service"
 	"github.com/feature-flag-system/backend/internal/sse"
 )
@@ -74,6 +75,7 @@ func (h *ClientHandler) StreamEvents(w http.ResponseWriter, r *http.Request) {
 // missed live events (disconnect, dropped Redis message, gap) can replay them
 // in version order and converge to the latest committed state.
 func (h *ClientHandler) Reconcile(w http.ResponseWriter, r *http.Request) {
+	defer metrics.TimeReconcile()()
 	var since int64
 	if s := r.URL.Query().Get("since"); s != "" {
 		v, err := strconv.ParseInt(s, 10, 64)

@@ -81,6 +81,10 @@ func (c *Client) stream(ctx context.Context) error {
 				version, ok := parseSSEVersion(id)
 				if !ok {
 					version = c.ConfigVersion() + 1
+				} else if c.cfg.OnVersion != nil {
+					// Passive measurement hook: record when this client observed
+					// the versioned frame on the wire (before apply/reconcile).
+					c.cfg.OnVersion(version, time.Now())
 				}
 				if c.applyLiveEvent(eventType, data, version) {
 					if err := c.Reconcile(ctx); err != nil {
