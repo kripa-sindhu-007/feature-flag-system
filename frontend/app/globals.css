@@ -179,6 +179,49 @@
   }
 }
 
+/* ── Propagation hero (Overview) ── */
+/* An indigo pulse traveling along a connector, leading the eye admin → db →
+   redis → backends → browser. Purely cosmetic pacing; the ms number shown is
+   always the real client-observed latency. Disabled under reduced-motion below,
+   and also gated off in JS so the hero degrades to a stepped/static state. */
+@keyframes flagplane-flow {
+  0% {
+    left: -20%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    left: 110%;
+    opacity: 0;
+  }
+}
+
+@keyframes flagplane-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.flagplane-flow-dot {
+  animation: flagplane-flow 900ms ease-in-out;
+}
+.flagplane-pop {
+  animation: flagplane-pop 260ms ease-out;
+}
+
 /* Reduced motion: honor the user's preference globally */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -3,9 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Menu, Flag, FlaskConical, Boxes, Activity } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Menu,
+  Flag,
+  FlaskConical,
+  Boxes,
+  Activity,
+  ShieldCheck,
+  BookOpen,
+} from "lucide-react";
 import { useFlags } from "@/hooks/useFlags";
 import { Button } from "@/components/ui/button";
+import { ExplainToggle } from "@/components/explain/ExplainToggle";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +35,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/demo": "Demo",
   "/cluster": "Cluster",
   "/health": "Health",
+  "/resilience": "Resilience",
+  "/glossary": "Glossary",
 };
 
 function pageTitle(pathname: string): string {
@@ -75,6 +88,12 @@ function MobileNav() {
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/health" />}>
           <Activity className="h-4 w-4" /> Health
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/resilience" />}>
+          <ShieldCheck className="h-4 w-4" /> Resilience
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/glossary" />}>
+          <BookOpen className="h-4 w-4" /> Glossary
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -150,6 +169,8 @@ export function TopBar() {
               : "Cannot reach the API at :8080"}
           </TooltipContent>
         </Tooltip>
+
+        <ExplainToggle />
 
         <ThemeToggle />
       </div>

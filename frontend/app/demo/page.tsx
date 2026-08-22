@@ -15,6 +15,9 @@ import {
   type ConnectionStatus,
 } from "@/sdk/FeatureFlagClient";
 import { FlagConfig } from "@/types/flag";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { Term } from "@/components/explain/Term";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const SDK_KEY = process.env.NEXT_PUBLIC_SDK_KEY || "sdk-secret-key";
@@ -79,16 +82,18 @@ export default function DemoPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Demo
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            The SDK evaluates flags{" "}
-            <span className="text-foreground">locally</span> for the selected
-            user. Switch users to see rollouts and targeting take effect.
-          </p>
-        </div>
+        <PageIntro
+          title="See it decide, per user"
+          subtitle={
+            <>
+              This is a real app using the SDK. It{" "}
+              <Term name="local-evaluation">evaluates every flag locally</Term>{" "}
+              for the selected user — switch users and watch the same flags land
+              differently.
+            </>
+          }
+          className="min-w-0"
+        />
         {isReady && (
           <div
             className={cn(
@@ -115,6 +120,13 @@ export default function DemoPage() {
           </div>
         )}
       </div>
+
+      <GuideCallout>
+        Notice a user always gets the same answer — that&apos;s the{" "}
+        <Term name="rollout">rollout</Term> being deterministic, not random. In
+        the next wave you&apos;ll be able to open any user and see exactly why a
+        flag is on or off. For now, switch users below and watch the cards react.
+      </GuideCallout>
 
       {isReady && (
         <ReconnectPanel

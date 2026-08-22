@@ -16,6 +16,11 @@ import { Button } from "@/components/ui/button";
 import { useFlags } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
 import { useReadiness, useFleetMetrics } from "@/hooks/useHealth";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
+import { Term } from "@/components/explain/Term";
+import { PropagationHero } from "@/components/overview/PropagationHero";
 import { cn } from "@/lib/utils";
 
 export default function OverviewPage() {
@@ -32,31 +37,43 @@ export default function OverviewPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Overview
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          A self-hosted feature-flag control plane — rollouts, targeting, and
-          real-time propagation.
-        </p>
-      </div>
+      <PageIntro
+        title="Watch a feature flag come to life"
+        subtitle="A feature flag is a switch for your app you can flip without a redeploy. This one runs for real across three servers — flip it below and follow the change end to end."
+      />
 
-      {/* Stat tiles */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile icon={Flag} label="Total flags" value={total} />
-        <StatTile
-          icon={Power}
-          label="Enabled"
-          value={enabled}
-          hint={total ? `of ${total}` : undefined}
-        />
-        <StatTile icon={Percent} label="Avg rollout" value={`${avgRollout}%`} />
-        <StatTile icon={Users} label="With targeting" value={targeted} />
-      </div>
+      <GuideCallout>
+        Start here. Flip <code className="font-mono">hero-demo</code> and watch a
+        single change become a new version, save to the database, and reach every
+        server and this browser — all live. That trip is called{" "}
+        <Term name="propagation">propagation</Term>, and it&apos;s the whole
+        point of the system.
+      </GuideCallout>
+
+      {/* The hero — flip → propagation */}
+      <PropagationHero />
 
       {/* Health strip */}
       <HealthStrip />
+
+      {/* Dense operator numbers — collapsed under Explain */}
+      <AdvancedDetails label="Flag inventory">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile icon={Flag} label="Total flags" value={total} />
+          <StatTile
+            icon={Power}
+            label="Enabled"
+            value={enabled}
+            hint={total ? `of ${total}` : undefined}
+          />
+          <StatTile
+            icon={Percent}
+            label="Avg rollout"
+            value={`${avgRollout}%`}
+          />
+          <StatTile icon={Users} label="With targeting" value={targeted} />
+        </div>
+      </AdvancedDetails>
 
       {/* Quick actions */}
       <div className="grid gap-4 md:grid-cols-2">

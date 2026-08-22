@@ -7,7 +7,7 @@ const SDK_KEY = process.env.NEXT_PUBLIC_SDK_KEY || "sdk-secret-key";
 
 // The load balancer hides individual nodes, so the panel polls each backend
 // directly. Falls back to the single API URL when no cluster is configured.
-const NODE_URLS: string[] = (process.env.NEXT_PUBLIC_NODE_URLS || API_URL)
+export const NODE_URLS: string[] = (process.env.NEXT_PUBLIC_NODE_URLS || API_URL)
   .split(",")
   .map((u) => u.trim())
   .filter(Boolean);
@@ -29,7 +29,7 @@ export interface ClusterState {
   reachableCount: number;
 }
 
-async function fetchNode(url: string): Promise<NodeState> {
+export async function fetchNode(url: string): Promise<NodeState> {
   try {
     const res = await fetch(`${url}/api/client/version`, {
       headers: { "X-SDK-Key": SDK_KEY },

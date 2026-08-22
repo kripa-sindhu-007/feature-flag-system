@@ -19,6 +19,9 @@ import {
   useRedisPublishErrors,
   type NodeReadiness,
 } from "@/hooks/useHealth";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { Term } from "@/components/explain/Term";
 import { cn } from "@/lib/utils";
 
 // A per-node row merges the two live sources by URL (both hooks discover nodes
@@ -74,21 +77,27 @@ export default function ResiliencePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Resilience
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          A live, observe-only view of the cluster under chaos. Faults are
-          injected out-of-band by the{" "}
-          <code className="font-mono text-foreground">chaos/</code> scripts — this
-          page doesn&apos;t trigger anything, it just watches each node&apos;s
-          version and readiness so you can see it{" "}
-          <span className="text-foreground">diverge and reconverge</span> in real
-          time.
-        </p>
-      </div>
+      <PageIntro
+        title="What happens when things break"
+        subtitle={
+          <>
+            A live, observe-only view of the cluster under failure. Faults are
+            injected out-of-band by the{" "}
+            <code className="font-mono text-foreground">chaos/</code> scripts;
+            this page just watches each server{" "}
+            <span className="text-foreground">diverge and reconverge</span> in
+            real time.
+          </>
+        }
+      />
+
+      <GuideCallout>
+        The database is the memory; Redis is the messenger. Lose the messenger
+        and writes still work — servers hold their last-known-good version and
+        never go backwards. When the connection returns, each one quietly{" "}
+        <Term name="reconcile">reconciles</Term> by replaying what it missed, and
+        the cluster <Term name="convergence">converges</Term> again.
+      </GuideCallout>
 
       {/* Convergence banner */}
       <div

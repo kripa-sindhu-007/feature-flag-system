@@ -21,6 +21,9 @@ import { RolloutBar } from "./RolloutBar";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { useFlags, useToggleFlag } from "@/hooks/useFlags";
 import { useSSE } from "@/hooks/useSSE";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { Term } from "@/components/explain/Term";
 
 export function FlagList() {
   const { data, isLoading, isError } = useFlags();
@@ -30,22 +33,30 @@ export function FlagList() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Feature flags
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {flags?.length ?? 0} flag{flags?.length === 1 ? "" : "s"} · evaluated
-            locally, propagated in real time
-          </p>
-        </div>
-        <Button nativeButton={false} render={<Link href="/flags/new" />}>
-          <Plus className="h-4 w-4" />
-          New flag
-        </Button>
-      </div>
+      <PageIntro
+        title="Feature flags"
+        subtitle={
+          <>
+            Every switch you can flip, with its rollout and version. Each device{" "}
+            <Term name="local-evaluation">evaluates flags locally</Term> and gets
+            changes in real time.
+          </>
+        }
+        actions={
+          <Button nativeButton={false} render={<Link href="/flags/new" />}>
+            <Plus className="h-4 w-4" />
+            New flag
+          </Button>
+        }
+      />
+
+      <GuideCallout>
+        Each row is one flag. The toggle turns it on or off for everyone; the{" "}
+        <Term name="rollout">rollout</Term> % opens it to a slice of users; the{" "}
+        <Term name="config-version">version</Term> bumps on every change so
+        clients always know what they&apos;ve applied. Click a key to edit,
+        target users, or see its history.
+      </GuideCallout>
 
       {/* States */}
       {isError ? (
@@ -179,13 +190,15 @@ function SkeletonTable() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card px-6 py-16 text-center">
       <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted">
         <FlagIcon className="h-5 w-5 text-muted-foreground" />
       </span>
       <p className="mt-4 text-sm font-medium text-foreground">No flags yet</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Create your first flag to start rolling out features.
+      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+        A feature flag is a named switch for your app. Turn a feature on or off,
+        or open it to a percentage of users — all without shipping new code.
+        Create one to see it evaluate live in the Demo.
       </p>
       <Button
         className="mt-4"
@@ -193,7 +206,7 @@ function EmptyState() {
         render={<Link href="/flags/new" />}
       >
         <Plus className="h-4 w-4" />
-        New flag
+        Create your first flag
       </Button>
     </div>
   );

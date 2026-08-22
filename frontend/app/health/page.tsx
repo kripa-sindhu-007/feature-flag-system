@@ -17,6 +17,10 @@ import {
   useFleetMetrics,
   type NodeReadiness,
 } from "@/hooks/useHealth";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
+import { Term } from "@/components/explain/Term";
 import { cn } from "@/lib/utils";
 
 const GRAFANA_URL =
@@ -38,33 +42,70 @@ export default function HealthPage() {
   const total = nodeList.length;
   const allReady = total > 0 && readyCount === total;
 
+  const typicalMs = metrics?.unavailable
+    ? null
+    : ms(metrics?.propagationP50 ?? metrics?.propagationP99 ?? null);
+  const headline =
+    total === 0
+      ? "Checking each server…"
+      : allReady
+      ? typicalMs && typicalMs !== "—"
+        ? `All healthy — changes reach every server in about ${typicalMs} ms.`
+        : "All healthy — every server is ready to serve."
+      : `Degraded — ${readyCount} of ${total} servers ready.`;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
-            Health
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Per-node readiness straight from each backend&apos;s{" "}
-            <code className="font-mono text-foreground">/readyz</code>, plus live
-            fleet metrics from Prometheus. Deep-dive dashboards live in Grafana.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="lg"
-          nativeButton={false}
-          render={
-            <a href={GRAFANA_URL} target="_blank" rel="noopener noreferrer" />
-          }
-        >
-          <Gauge className="h-4 w-4" />
-          Open Grafana
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+      <PageIntro
+        title="Is the fleet healthy?"
+        subtitle={
+          <>
+            Whether every server is ready to serve correct data, and how fast a
+            change reaches all of them. Each server answers its own{" "}
+            <Term name="readyz">/readyz</Term> check.
+          </>
+        }
+        status={
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                total === 0
+                  ? "bg-muted-foreground/60"
+                  : allReady
+                  ? "bg-success"
+                  : "bg-warning"
+              )}
+            />
+            {headline}
+          </span>
+        }
+        actions={
+          <Button
+            variant="outline"
+            size="lg"
+            nativeButton={false}
+            render={
+              <a href={GRAFANA_URL} target="_blank" rel="noopener noreferrer" />
+            }
+          >
+            <Gauge className="h-4 w-4" />
+            Open Grafana
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        }
+      />
+
+      <GuideCallout>
+        A server is <Term name="readyz">ready</Term> only when it can reach its
+        database and message bus and holds current config — so the load balancer
+        never sends you to one that can&apos;t answer correctly.{" "}
+        <Term name="p99">p99</Term> propagation is the near-worst case: 99% of
+        changes land faster than that.
+      </GuideCallout>
+
+      <AdvancedDetails label="Metrics &amp; per-node readiness">
+        <div className="space-y-6">
 
       {/* Fleet metric tiles */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,11 +176,13 @@ export default function HealthPage() {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Polling each node&apos;s{" "}
-        <code className="font-mono">/readyz</code> every 4s; fleet metrics from
-        Prometheus every 5s.
-      </p>
+          <p className="text-xs text-muted-foreground">
+            Polling each node&apos;s{" "}
+            <code className="font-mono">/readyz</code> every 4s; fleet metrics
+            from Prometheus every 5s.
+          </p>
+        </div>
+      </AdvancedDetails>
     </div>
   );
 }

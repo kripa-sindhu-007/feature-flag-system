@@ -2,6 +2,10 @@
 
 import { Boxes, CircleCheck, RadioTower, Users } from "lucide-react";
 import { useCluster, type NodeState } from "@/hooks/useCluster";
+import { PageIntro } from "@/components/explain/PageIntro";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
+import { Term } from "@/components/explain/Term";
 import { cn } from "@/lib/utils";
 
 export default function ClusterPage() {
@@ -12,20 +16,27 @@ export default function ClusterPage() {
   const latest = data?.latestVersion ?? 0;
   const reachable = data?.reachableCount ?? 0;
 
+  const headline =
+    reachable === 0
+      ? "No servers are reachable right now."
+      : converged
+      ? `All ${reachable} server${reachable > 1 ? "s" : ""} agree — everyone is on v${latest}.`
+      : "A change is spreading — the servers are catching up to each other.";
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          Cluster
-        </h2>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Every backend runs a Redis subscriber, so a flag changed on one node
-          propagates to SSE clients on all of them. Each node reports its own
-          view of the global{" "}
-          <span className="text-foreground">config version</span> — when they
-          match, the cluster has converged.
-        </p>
-      </div>
+      <PageIntro
+        title="One change, every server"
+        subtitle="Flags run on three backends at once. This page shows whether they all agree on the latest version yet."
+        status={headline}
+      />
+
+      <GuideCallout>
+        Each server keeps its own copy of the config and reports which{" "}
+        <Term name="config-version">version</Term> it&apos;s on. Right after a
+        change they can briefly differ; the moment they all match, the cluster
+        has <Term name="convergence">converged</Term>. Green means caught up.
+      </GuideCallout>
 
       {/* Convergence banner */}
       <div
@@ -61,25 +72,30 @@ export default function ClusterPage() {
         </span>
       </div>
 
-      {/* Node grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {isLoading && nodes.length === 0
-          ? Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-36 animate-pulse rounded-lg border border-border bg-card"
-              />
-            ))
-          : nodes.map((node) => (
-              <NodeCard key={node.url} node={node} latest={latest} />
-            ))}
-      </div>
+      {/* Per-node detail — dense, collapsed under Explain */}
+      <AdvancedDetails label="Per-node detail">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {isLoading && nodes.length === 0
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-36 animate-pulse rounded-lg border border-border bg-card"
+                  />
+                ))
+              : nodes.map((node) => (
+                  <NodeCard key={node.url} node={node} latest={latest} />
+                ))}
+          </div>
 
-      <p className="text-xs text-muted-foreground">
-        Polling each node’s <code className="font-mono">/api/client/version</code>{" "}
-        every 1.5s. Writes and streams flow through the load balancer on{" "}
-        <code className="font-mono">:8080</code>.
-      </p>
+          <p className="text-xs text-muted-foreground">
+            Polling each node’s{" "}
+            <code className="font-mono">/api/client/version</code> every 1.5s.
+            Writes and streams flow through the load balancer on{" "}
+            <code className="font-mono">:8080</code>.
+          </p>
+        </div>
+      </AdvancedDetails>
     </div>
   );
 }
