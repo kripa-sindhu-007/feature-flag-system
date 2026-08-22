@@ -11,6 +11,9 @@ import { StatusBadge } from "@/components/flags/StatusBadge";
 import { FlagHistoryDrawer } from "@/components/flags/FlagHistoryDrawer";
 import { useFlag, useUpdateFlag, useDeleteFlag } from "@/hooks/useFlags";
 import { UpdateFlagInput } from "@/types/flag";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
+import { Term } from "@/components/explain/Term";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -158,6 +161,15 @@ export default function FlagDetailPage({
         </div>
       </div>
 
+      <GuideCallout>
+        Editing here changes the flag for real. Every save bumps the{" "}
+        <Term name="config-version">version</Term> and propagates to all servers
+        within milliseconds. Your save carries the version you loaded, so if
+        someone else edited it first you&apos;ll get a heads-up instead of
+        silently overwriting them — that&apos;s{" "}
+        <Term name="optimistic-concurrency">optimistic concurrency</Term>.
+      </GuideCallout>
+
       {/* Configuration */}
       <div className="rounded-lg border border-border bg-card p-6">
         <FlagForm
@@ -167,21 +179,27 @@ export default function FlagDetailPage({
         />
       </div>
 
-      {/* Metadata */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 text-xs text-muted-foreground">
-        <span>
-          Created{" "}
-          <span className="font-mono text-foreground/80">
-            {new Date(flag.created_at).toLocaleString()}
+      {/* Metadata — dense, collapsed under Explain */}
+      <AdvancedDetails label="Metadata">
+        <div className="flex flex-wrap gap-x-6 gap-y-1 px-1 text-xs text-muted-foreground">
+          <span>
+            Version{" "}
+            <span className="font-mono text-foreground/80">v{flag.version}</span>
           </span>
-        </span>
-        <span>
-          Updated{" "}
-          <span className="font-mono text-foreground/80">
-            {new Date(flag.updated_at).toLocaleString()}
+          <span>
+            Created{" "}
+            <span className="font-mono text-foreground/80">
+              {new Date(flag.created_at).toLocaleString()}
+            </span>
           </span>
-        </span>
-      </div>
+          <span>
+            Updated{" "}
+            <span className="font-mono text-foreground/80">
+              {new Date(flag.updated_at).toLocaleString()}
+            </span>
+          </span>
+        </div>
+      </AdvancedDetails>
     </div>
   );
 }

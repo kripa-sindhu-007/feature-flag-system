@@ -6,6 +6,8 @@ import Link from "next/link";
 import { FlagForm } from "@/components/flags/FlagForm";
 import { useCreateFlag } from "@/hooks/useFlags";
 import { CreateFlagInput } from "@/types/flag";
+import { GuideCallout } from "@/components/explain/GuideCallout";
+import { Term } from "@/components/explain/Term";
 import { toast } from "sonner";
 
 export default function NewFlagPage() {
@@ -36,9 +38,18 @@ export default function NewFlagPage() {
           New flag
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Configure a new feature flag and its rollout.
+          Give it a key, then choose who sees it — everyone, a percentage, or a
+          named list.
         </p>
       </div>
+
+      <GuideCallout>
+        The <span className="font-medium">key</span> is how your code asks for
+        this flag, so keep it stable. Start it off or at a small{" "}
+        <Term name="rollout">rollout</Term> %, then dial it up as you gain
+        confidence. You can always add specific{" "}
+        <Term name="targeting">targeted users</Term> who get it right away.
+      </GuideCallout>
 
       <div className="rounded-lg border border-border bg-card p-6">
         <FlagForm onSubmit={handleSubmit} isLoading={createFlag.isPending} />

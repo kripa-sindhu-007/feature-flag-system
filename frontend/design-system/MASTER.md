@@ -180,7 +180,48 @@ Persistent **left sidebar** + **top bar**; adaptive (sidebar collapses to icons 
 
 ---
 
-## 9. Pre-ship checklist (every UI change)
+## 9. Explanation layer (teaching UX — added Wave 1, UX roadmap)
+
+The dashboard doubles as a self-explaining teaching experience (see
+[`docs/UX_ROADMAP.md`](../../docs/UX_ROADMAP.md)). These primitives are the
+pervasive "the app explains itself" layer; reuse them, don't reinvent per page.
+
+- **Explain toggle (global).** One switch in the top bar, persisted in
+  localStorage (`flagplane-explain`), **default ON**. ON = teaching: guide
+  callouts shown, `AdvancedDetails` collapsed. OFF = pro: callouts hidden,
+  detail expanded. State lives in `ExplainProvider` / `useExplain`.
+- **Guide voice = one visual layer.** The unnamed guide (charter in the roadmap)
+  always renders as the **guide callout**: `Sparkles` icon + a 2px indigo
+  **left accent** on `bg-primary/[0.06]` / `border-primary/20`. This indigo
+  treatment is reserved for the guide layer + the "Like" analogy block, so
+  "the app talking" reads as one thing, distinct from neutral tooltips (which
+  stay `bg-foreground` on `text-background`).
+- **Page pattern.** Every page opens with `PageIntro` — a plain-English H1
+  title + one-line subtitle + optional one-line **status** (real data,
+  `aria-live`) — then at most one `GuideCallout`, then the interactive content.
+  Dense operator tiles/grids/numbers go inside `AdvancedDetails` (a labeled
+  disclosure whose default open state = `!explain`).
+- **Inline glossary.** `Term` = dotted-underline inline link (`decoration-dotted
+  underline-offset-4`, hover → `decoration-primary`); hover/focus shows the short
+  def (tooltip) and it links to `/glossary#id`. Terms always render (jargon help,
+  not the guide layer). Single source of truth: `lib/glossary.ts`.
+- **Color legend (always visible).** Sidebar footer, per the product code:
+  **green = live** (on/healthy/caught-up), **red = down** (unreachable/conflict),
+  **indigo = act** (you can act here). Reinforces "never color alone".
+- **Teaching empty states.** An empty list explains the concept in one or two
+  sentences + a clear CTA (not just "nothing here").
+
+### Motion — the propagation hero
+The Overview hero (`PropagationHero`) animates a real flag change traveling
+admin → Postgres → Redis → backends → this browser. Tokens:
+`@keyframes flagplane-flow` (an indigo pulse dot along a connector, 900ms
+ease-in-out) and `flagplane-pop` (a node chip settling green as it reaches the
+new version, 260ms). **All timings/node-lights are real** (measured client-side
+via `/api/client/version` polls + the SSE stream); motion is pacing only.
+`prefers-reduced-motion` (via `useReducedMotion`) drops the traveling pulse for a
+clear stepped/static state — the story and the real ms number still read.
+
+## 10. Pre-ship checklist (every UI change)
 
 - [ ] Screenshot-verified in a real browser (Playwright), **light + dark**, via the `frontend-ui` skill.
 - [ ] Contrast ≥4.5:1 text / ≥3:1 glyphs, verified per theme.
