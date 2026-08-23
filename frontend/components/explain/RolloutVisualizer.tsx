@@ -46,8 +46,16 @@ export function RolloutVisualizer({
 }) {
   const reduceMotion = useReducedMotion();
 
-  // Explore percentage — starts at the flag's real value; local only.
+  // Explore percentage — starts at the flag's real value; locally adjustable for
+  // what-if exploration. When the underlying flag's real rollout changes (e.g. a
+  // saved edit, or the Playground builder), re-sync so the grid follows the real
+  // value instead of getting stuck on a stale explore value.
   const [pct, setPct] = useState(flag.rollout_percentage);
+  const [prevFlagPct, setPrevFlagPct] = useState(flag.rollout_percentage);
+  if (flag.rollout_percentage !== prevFlagPct) {
+    setPrevFlagPct(flag.rollout_percentage);
+    setPct(flag.rollout_percentage);
+  }
   const [selected, setSelected] = useState<string | null>(null);
   const [focusIdx, setFocusIdx] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);

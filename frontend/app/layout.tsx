@@ -6,6 +6,7 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { GuidedTour } from "@/components/explain/GuidedTour";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -46,6 +47,7 @@ export default function RootLayout({
                 </main>
               </div>
             </div>
+            <GuidedTour />
             <Toaster />
           </TooltipProvider>
         </Providers>

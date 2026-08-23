@@ -13,10 +13,13 @@ import {
   Activity,
   ShieldCheck,
   BookOpen,
+  GraduationCap,
+  Blocks,
 } from "lucide-react";
 import { useFlags } from "@/hooks/useFlags";
 import { Button } from "@/components/ui/button";
 import { ExplainToggle } from "@/components/explain/ExplainToggle";
+import { TourButton } from "@/components/explain/GuidedTour";
 import {
   Tooltip,
   TooltipContent,
@@ -36,6 +39,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/cluster": "Cluster",
   "/health": "Health",
   "/resilience": "Resilience",
+  "/learn": "Learn",
+  "/playground": "Playground",
   "/glossary": "Glossary",
 };
 
@@ -91,6 +96,12 @@ function MobileNav() {
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/resilience" />}>
           <ShieldCheck className="h-4 w-4" /> Resilience
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/learn" />}>
+          <GraduationCap className="h-4 w-4" /> Learn
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/playground" />}>
+          <Blocks className="h-4 w-4" /> Playground
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/glossary" />}>
           <BookOpen className="h-4 w-4" /> Glossary
@@ -169,6 +180,8 @@ export function TopBar() {
               : "Cannot reach the API at :8080"}
           </TooltipContent>
         </Tooltip>
+
+        <TourButton className="hidden lg:inline-flex" />
 
         <ExplainToggle />
 

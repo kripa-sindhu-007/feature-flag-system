@@ -271,6 +271,33 @@ Making the multi-node system visible; all three read **real** sources (no mocks)
   line (enabled, rollout, targeting count, timestamp). New glossary term:
   `event-log`.
 
+### Guided experience & sandbox (Wave 4)
+The on-ramp: learn by reading, learn by doing, with nothing to break.
+
+- **`GuidedTour`** (`components/explain/`). A **non-modal** floating step panel
+  (bottom-right) that walks the 8 concepts in order; each step has a "Go there"
+  link and the panel persists across navigation (non-modal on purpose — you read
+  the step while looking at the real screen). State is a tiny localStorage store
+  (`flagplane-tour-seen`) shaped like `ExplainProvider`: `override` (null=first-run
+  auto-open, else explicit) + `useTourOpen()` via `useSyncExternalStore`
+  (SSR-safe, closed on server). `openTour()` reopens it; `<TourButton>` sits in the
+  TopBar (lg) + Overview/Learn. Esc closes; step is reset on each open via
+  adjust-state-on-render (no effect). Mounted once in `app/layout.tsx`.
+- **`/learn`**. The concept index: 8 ordered chapter cards (number + icon + plain
+  line + the glossary analogy, pulled from `GLOSSARY_BY_ID` so it never drifts),
+  each with a **See it** link to the live screen + a dotted **Definition** link to
+  `/glossary#id`. Ends with a Playground CTA.
+- **`/playground`**. A **safe local sandbox**: build a flag (enabled / rollout /
+  targeted-user chips) held in browser state only — key `"playground"`, so the
+  hashing is real but the flag never hits the server ("Sandbox — nothing here is
+  saved"). Reuses the Wave-2 `RolloutVisualizer` + `WhyExplainer` (they take an
+  `EvaluableFlag`), so the math is the real SDK's. **`FailureLab`** is a real,
+  browser-triggerable failure demo: a live `FeatureFlagClient` you can
+  Disconnect/Reconnect to watch it fall behind then reconcile from the durable log
+  (client-connection failure — real & safe); links to `/resilience` for real
+  server/cache chaos. Nav: Learn + Playground added to the sidebar Learn group and
+  the mobile nav.
+
 ### Slider accessibility note
 `components/ui/slider.tsx` (base-ui) renders the `role=slider` `<input type=range>`
 **inside the Thumb**, so an `aria-label`/`aria-labelledby` on the component is
