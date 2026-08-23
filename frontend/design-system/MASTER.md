@@ -221,6 +221,38 @@ via `/api/client/version` polls + the SSE stream); motion is pacing only.
 `prefers-reduced-motion` (via `useReducedMotion`) drops the traveling pulse for a
 clear stepped/static state — the story and the real ms number still read.
 
+### Evaluation teaching (Wave 2)
+Two signature components make deterministic rollout legible; both compute the
+**real** SDK decision via `lib/evaluate.ts` (which reuses the SDK's own `fnv1a32`
+and is pinned to `FeatureFlagClient.isEnabled` by a parity test — the UI never
+invents its own math).
+
+- **`RolloutVisualizer`.** A 10×10 grid of 100 sample users (`user-1…user-100`),
+  each placed by its **real** fixed hash bucket for the flag, **sorted ascending**
+  so raising the % fills the grid like a meter. Cells: indigo = on (in rollout),
+  indigo + `ring-warning` = on (targeted, overrides %), `bg-muted` = off; the
+  current user gets a `ring-foreground` outline. The % slider is a **what-if
+  explorer** — starts at the flag's real value, never writes (the real editor is
+  the flag form), always labels "Exploring hypothetically… Actual rollout: N%"
+  with a *Reset to actual*. Determinism reads because cells flip **in place**;
+  clicking one reveals `fnv1a32("key:user") % 100 = N → N < pct?`. Keyboard:
+  roving-tabindex grid (arrows/Home/End), `prefers-reduced-motion` drops the
+  color transition.
+- **`WhyExplainer`.** A user id → a 3-step verdict card mirroring the SDK's order:
+  enabled? → targeted? → in rollout (`bucket < pct`)? Short-circuits render
+  honestly as "not reached" (disabled kill-switch, or targeting already decided).
+  Verdict badge is icon + text (never color alone); `aria-live` on the verdict.
+
+Both live on **`/demo`** (with a flag picker + the current demo user) and
+**`/flags/[id]`** (bound to that flag's real config). New glossary terms:
+`determinism`, `hash-bucket`.
+
+### Slider accessibility note
+`components/ui/slider.tsx` (base-ui) renders the `role=slider` `<input type=range>`
+**inside the Thumb**, so an `aria-label`/`aria-labelledby` on the component is
+forwarded to the Thumb (not just Root) — otherwise the slider has no accessible
+name. Always pass one.
+
 ## 10. Pre-ship checklist (every UI change)
 
 - [ ] Screenshot-verified in a real browser (Playwright), **light + dark**, via the `frontend-ui` skill.
