@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { evaluate, rolloutBucket, type EvaluableFlag } from "./evaluate";
-import { FeatureFlagClient, fnv1a32 } from "@/sdk/FeatureFlagClient";
-import type { FlagConfig } from "@/types/flag";
+import { FeatureFlagClient, fnv1a32 } from "../sdk/FeatureFlagClient";
+import type { FlagConfig } from "../types/flag";
 
 /**
  * The whole point of lib/evaluate is that the teaching UI narrates the *exact*

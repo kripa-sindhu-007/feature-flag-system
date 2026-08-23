@@ -21,6 +21,7 @@ import { GuideCallout } from "@/components/explain/GuideCallout";
 import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
 import { Term } from "@/components/explain/Term";
 import { PropagationHero } from "@/components/overview/PropagationHero";
+import { SseConsole } from "@/components/explain/SseConsole";
 import { cn } from "@/lib/utils";
 
 export default function OverviewPage() {
@@ -52,6 +53,9 @@ export default function OverviewPage() {
 
       {/* The hero — flip → propagation */}
       <PropagationHero />
+
+      {/* A live peek at the real event stream — flipping the hero shows up here */}
+      <SseConsole compact />
 
       {/* Health strip */}
       <HealthStrip />

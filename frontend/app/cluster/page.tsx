@@ -6,6 +6,9 @@ import { PageIntro } from "@/components/explain/PageIntro";
 import { GuideCallout } from "@/components/explain/GuideCallout";
 import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
 import { Term } from "@/components/explain/Term";
+import { ClusterHero } from "@/components/cluster/ClusterHero";
+import { SseConsole } from "@/components/explain/SseConsole";
+import { VersionTimeline } from "@/components/explain/VersionTimeline";
 import { cn } from "@/lib/utils";
 
 export default function ClusterPage() {
@@ -37,6 +40,8 @@ export default function ClusterPage() {
         change they can briefly differ; the moment they all match, the cluster
         has <Term name="convergence">converged</Term>. Green means caught up.
       </GuideCallout>
+
+      <ClusterHero />
 
       {/* Convergence banner */}
       <div
@@ -70,6 +75,12 @@ export default function ClusterPage() {
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
           latest v{latest}
         </span>
+      </div>
+
+      {/* See it + trace it: the live stream and the durable history */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <SseConsole />
+        <VersionTimeline latest={latest} />
       </div>
 
       {/* Per-node detail — dense, collapsed under Explain */}

@@ -119,6 +119,14 @@ export const GLOSSARY: GlossaryEntry[] = [
     analogy: "A shop's 'Open' sign — it only flips on when the tills and lights actually work.",
   },
   {
+    id: "event-log",
+    term: "Event log",
+    short: "The durable, ordered record of every flag change — the real history.",
+    definition:
+      "Every change is appended to a durable log in the database, each with a monotonically increasing version. Unlike the live stream (which is ephemeral and can be missed), the log is the source of truth: a client that fell behind replays from it to catch up, and the version timeline is just this log, drawn.",
+    analogy: "A ship's logbook — the messenger may not always reach you, but the log is always there to read back.",
+  },
+  {
     id: "determinism",
     term: "Determinism",
     short: "Same input, same answer, every time — no randomness, no flicker.",

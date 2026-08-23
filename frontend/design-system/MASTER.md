@@ -247,6 +247,30 @@ Both live on **`/demo`** (with a flag picker + the current demo user) and
 **`/flags/[id]`** (bound to that flag's real config). New glossary terms:
 `determinism`, `hash-bucket`.
 
+### Distributed-magic components (Wave 3)
+Making the multi-node system visible; all three read **real** sources (no mocks).
+
+- **`ClusterHero`** (`components/cluster/`). The Overview hero, retuned for
+  `/cluster`: the 3 backends are the star. Flip `hero-demo` → each node card shows
+  its real `vOld → vNew?` transition (amber, `line-through` old + `ArrowRight` to
+  `v{target}?`) while behind, then flips green with its real arrival ms; an
+  explicit **Diverged (N/3) → Converged at vN** badge. Same real-timing method as
+  `PropagationHero` (t0 = send, poll each `/api/client/version` until it reaches
+  target). `prefers-reduced-motion` drops the `flagplane-pop`.
+- **`SseConsole`** (`components/explain/`). A human-readable window on the **real**
+  SSE stream: a plain `EventSource` to the LB renders each `flag_updated` /
+  `flag_deleted` frame as one line — `v2254 · checkout · ON · 50%` — newest-first,
+  `role="log"` + `aria-live="polite"`, connection pill (live/connecting/down),
+  pause + clear. Timestamps are client-observed arrival (honest label, not the
+  event's own time). `compact` prop = short chrome-light variant for the Overview.
+- **`VersionTimeline`** (`components/explain/` + `hooks/useEvents.ts`). The durable
+  **event log** drawn as a horizontal timeline (oldest→newest, auto-scrolls to the
+  newest). `useEvents(latest, window)` fetches `/api/client/events?since=latest−window`
+  (reconcile endpoint returns events *after* since, ascending, cap 1000). Ticks
+  are buttons (created=indigo / updated=neutral / deleted=muted); click → a detail
+  line (enabled, rollout, targeting count, timestamp). New glossary term:
+  `event-log`.
+
 ### Slider accessibility note
 `components/ui/slider.tsx` (base-ui) renders the `role=slider` `<input type=range>`
 **inside the Thumb**, so an `aria-label`/`aria-labelledby` on the component is
