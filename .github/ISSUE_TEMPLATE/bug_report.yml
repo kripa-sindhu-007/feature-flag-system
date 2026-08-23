@@ -1,0 +1,78 @@
+name: 🐛 Bug report
+description: Report something that isn't working as expected
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please search
+        [existing issues](https://github.com/kripa-sindhu-007/feature-flag-system/issues?q=is%3Aissue)
+        first to avoid duplicates.
+
+        **Security issue?** Do not file it here — follow
+        [SECURITY.md](https://github.com/kripa-sindhu-007/feature-flag-system/blob/main/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: When I ..., I expected ..., but instead ...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, ordered steps that reliably reproduce the problem.
+      placeholder: |
+        1. Run `docker compose up --build`
+        2. Create a flag with rollout 25%
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the system?
+      options:
+        - Backend / API (Go)
+        - Frontend / Dashboard (Next.js)
+        - SDK (TypeScript or Go)
+        - Propagation / SSE / reconcile
+        - Observability (Prometheus/Grafana/OTEL)
+        - Infrastructure (Docker/nginx)
+        - Docs
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / screenshots
+      description: Paste any relevant log output or attach screenshots. This is automatically formatted as code.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `git rev-parse --short HEAD`, or the commit you're on.
+      placeholder: e.g. 3b24d0c
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker version, browser (for UI bugs).
+      placeholder: e.g. macOS 15, Docker 27, Chrome 140
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I tested against the latest `main`.
+          required: false

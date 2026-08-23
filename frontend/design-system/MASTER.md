@@ -1,11 +1,11 @@
 # FlagPlane — Design System (MASTER)
 
-> Source of truth for the UI revamp **and** every per-phase D5 slice. Read this before touching UI.
+> Source of truth for the dashboard UI. Read this before touching UI.
 > Identity: **Linear Indigo** — near-black canvas, one indigo accent for *intent* (CTA / focus / active /
 > selected), green & red reserved strictly for **live / down** status. Dark-first, light equally polished.
-> Bar: Linear / Vercel / Stripe / Datadog. Derived via the `ui-ux-pro-max` skill (2026-08-18).
+> Bar: Linear / Vercel / Stripe / Datadog.
 >
-> Stack: Next.js 16 / React 19 · shadcn/ui · Tailwind CSS v4 · framer-motion · next-themes · lucide-react.
+> Stack: Next.js 16 / React 19 · shadcn/ui · Tailwind CSS v4 · next-themes · lucide-react.
 
 ---
 
@@ -20,7 +20,7 @@
 4. **Never color alone.** Every status = icon + color + text (WCAG `color-not-only`).
 5. **Both themes are designed, not inferred.** Contrast verified independently in light and dark.
 6. **Motion conveys meaning.** 150–300ms, ease-out in / faster out, `prefers-reduced-motion` honored. The one
-   place motion earns real weight: version convergence/reconcile (W2).
+   place motion earns real weight: version convergence/reconcile.
 
 ---
 
@@ -129,8 +129,8 @@ Persistent **left sidebar** + **top bar**; adaptive (sidebar collapses to icons 
 - **Active nav** = indigo left-accent bar + subtle indigo tint + `aria-current="page"`.
 - **`config_version` pill** in the top bar is live (`aria-live="polite"`) — the always-visible heartbeat of
   the whole system; every phase reads/writes it.
-- Nav grows with phases (D5): **Flags + Demo** now (revamp); **Cluster** (W2), **Health** (W3), **Chaos**
-  under Health or its own item (W4) appear as each lands — no dead/"coming soon" nav.
+- Nav is grouped **Control plane** (Overview, Flags, Demo, Cluster, Health, Resilience)
+  and **Learn** (Learn, Playground, Glossary); every item is live — no dead/"coming soon" nav.
 
 ---
 
@@ -144,10 +144,10 @@ Persistent **left sidebar** + **top bar**; adaptive (sidebar collapses to icons 
   with `aria-sort`. Row = status dot+label · flag key (mono) · rollout% · `version` (mono pill) · targeting
   count · toggle.
 - **Badge** — *version*: mono pill, `--muted` bg, `--foreground`. *Status*: dot (status hue) + text label.
-- **Switch/Toggle** — indigo when on; optimistic UI, but reverts + toast on 409 version conflict (W1).
+- **Switch/Toggle** — indigo when on; optimistic UI, but reverts + toast on 409 version conflict.
 - **Form** — visible labels (never placeholder-only), helper text, inline validate on blur, error below field
   in destructive hue, focus first invalid on submit (`focus-management`).
-- **Drawer** (flag history, W1) — right-side sheet, `--popover` + shadow, scrim 40–60% black, esc/click-out
+- **Drawer** (flag history) — right-side sheet, `--popover` + shadow, scrim 40–60% black, esc/click-out
   to close, focus-trapped.
 - **Empty / loading / error** — skeleton shimmer >300ms; empty states give a one-line reason + next action;
   errors show cause + retry.
@@ -159,7 +159,7 @@ Persistent **left sidebar** + **top bar**; adaptive (sidebar collapses to icons 
 
 - Global tokens: enter 200ms ease-out, exit 140ms ease-in; hover/press 150ms. Press scale 0.98→1.0 on cards.
 - Stagger list entrance 30–40ms/item, cap the effect. `prefers-reduced-motion` → cross-fade only, no move.
-- **Signature moment (W2):** version convergence — nodes animating from divergent versions to a shared `vN`,
+- **Signature moment:** version convergence — nodes animating from divergent versions to a shared `vN`,
   and the reconnect→reconcile "catch-up" on `/demo`. This is the one place choreography is worth it; elsewhere
   motion stays invisible/functional.
 
@@ -167,24 +167,28 @@ Persistent **left sidebar** + **top bar**; adaptive (sidebar collapses to icons 
 
 ## 8. Per-screen intent (hierarchical overrides live in `design-system/pages/`)
 
-| Screen | Route | Revamp scope | Phase adds (D5) |
-|---|---|---|---|
-| App shell | (layout) | sidebar + top bar + live version pill + theme | Cluster/Health/Chaos nav as phases land |
-| Flags list | `/flags` | dense sortable table, status language, quick toggle | version column + history entry point (W1) |
-| Flag detail | `/flags/[id]` | overview + rollout + targeting, clean hierarchy | **history/events drawer** (W1) |
-| New/Edit | `/flags/new` | form best-practices, inline validation | version-conflict (409) handling (W1) |
-| Demo | `/demo` | per-user eval visualizer, honest "local eval" story | **staleness indicator** (W1); reconnect→reconcile view (W2) |
-| Cluster | `/cluster` | — (new in W2) | 3-node propagation panel, "converged at vN" |
-| Health | `/health` | — (new in W3) | per-node `/readyz`, SSE-count + p99 tiles, Grafana link |
-| Chaos | `/health/chaos` | — (new in W4) | kill-node → watch versions reconcile live |
+| Screen | Route | Purpose |
+|---|---|---|
+| App shell | (layout) | Sidebar + top bar, live version pill, theme toggle, Explain toggle, guided tour |
+| Overview | `/` | Flip → propagation hero, live event stream, fleet-health strip |
+| Flags list | `/flags` | Dense sortable table, status language, quick toggle, version column |
+| Flag detail | `/flags/[id]` | Rollout + targeting, clean hierarchy, history/events drawer, version-conflict (409) handling |
+| New/Edit | `/flags/new` | Form best-practices, inline validation |
+| Demo | `/demo` | Per-user local-eval visualizer, rollout visualizer + "why ON/OFF?", staleness + reconnect→reconcile |
+| Cluster | `/cluster` | 3-node propagation hero, "converged at vN", live event stream, version timeline |
+| Health | `/health` | Per-node `/readyz`, SSE-count + p99 tiles, Grafana link |
+| Resilience | `/resilience` | Observe-only failure/recovery: nodes diverge → reconverge |
+| Learn | `/learn` | Concept-card index of the eight core ideas |
+| Playground | `/playground` | Safe local sandbox — build a flag, watch every concept react |
+| Glossary | `/glossary` | Every term in plain English with an everyday analogy |
 
 ---
 
-## 9. Explanation layer (teaching UX — added Wave 1, UX roadmap)
+## 9. Explanation layer (teaching UX)
 
-The dashboard doubles as a self-explaining teaching experience (see
-[`docs/UX_ROADMAP.md`](../../docs/UX_ROADMAP.md)). These primitives are the
-pervasive "the app explains itself" layer; reuse them, don't reinvent per page.
+The dashboard doubles as a self-explaining teaching experience. These primitives
+are the pervasive "the app explains itself" layer; reuse them, don't reinvent per
+page.
 
 - **Explain toggle (global).** One switch in the top bar, persisted in
   localStorage (`flagplane-explain`), **default ON**. ON = teaching: guide
@@ -221,7 +225,7 @@ via `/api/client/version` polls + the SSE stream); motion is pacing only.
 `prefers-reduced-motion` (via `useReducedMotion`) drops the traveling pulse for a
 clear stepped/static state — the story and the real ms number still read.
 
-### Evaluation teaching (Wave 2)
+### Evaluation teaching
 Two signature components make deterministic rollout legible; both compute the
 **real** SDK decision via `lib/evaluate.ts` (which reuses the SDK's own `fnv1a32`
 and is pinned to `FeatureFlagClient.isEnabled` by a parity test — the UI never
@@ -247,7 +251,7 @@ Both live on **`/demo`** (with a flag picker + the current demo user) and
 **`/flags/[id]`** (bound to that flag's real config). New glossary terms:
 `determinism`, `hash-bucket`.
 
-### Distributed-magic components (Wave 3)
+### Distributed-magic components
 Making the multi-node system visible; all three read **real** sources (no mocks).
 
 - **`ClusterHero`** (`components/cluster/`). The Overview hero, retuned for
@@ -271,7 +275,7 @@ Making the multi-node system visible; all three read **real** sources (no mocks)
   line (enabled, rollout, targeting count, timestamp). New glossary term:
   `event-log`.
 
-### Guided experience & sandbox (Wave 4)
+### Guided experience & sandbox
 The on-ramp: learn by reading, learn by doing, with nothing to break.
 
 - **`GuidedTour`** (`components/explain/`). A **non-modal** floating step panel
@@ -290,7 +294,7 @@ The on-ramp: learn by reading, learn by doing, with nothing to break.
 - **`/playground`**. A **safe local sandbox**: build a flag (enabled / rollout /
   targeted-user chips) held in browser state only — key `"playground"`, so the
   hashing is real but the flag never hits the server ("Sandbox — nothing here is
-  saved"). Reuses the Wave-2 `RolloutVisualizer` + `WhyExplainer` (they take an
+  saved"). Reuses the `RolloutVisualizer` + `WhyExplainer` (they take an
   `EvaluableFlag`), so the math is the real SDK's. **`FailureLab`** is a real,
   browser-triggerable failure demo: a live `FeatureFlagClient` you can
   Disconnect/Reconnect to watch it fall behind then reconcile from the durable log
@@ -306,7 +310,7 @@ name. Always pass one.
 
 ## 10. Pre-ship checklist (every UI change)
 
-- [ ] Screenshot-verified in a real browser (Playwright), **light + dark**, via the `frontend-ui` skill.
+- [ ] Screenshot-verified in a real browser (Playwright), **light + dark**.
 - [ ] Contrast ≥4.5:1 text / ≥3:1 glyphs, verified per theme.
 - [ ] Status conveyed by icon + text, not color alone.
 - [ ] Keyboard: visible focus rings, tab order matches visual order, drawers/dialogs focus-trapped + esc.
