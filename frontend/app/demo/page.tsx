@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback, ComponentType } from "react";
+import { useState, useEffect, useCallback, useMemo, ComponentType } from "react";
 import { Plug, PlugZap, Loader2 } from "lucide-react";
 import { useFlags } from "@/hooks/useFlags";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { UserSwitcher } from "@/components/demo/UserSwitcher";
 import { DarkModeFeature } from "@/components/demo/DarkModeFeature";
 import { BetaDashboard } from "@/components/demo/BetaDashboard";
@@ -18,6 +26,8 @@ import { FlagConfig } from "@/types/flag";
 import { PageIntro } from "@/components/explain/PageIntro";
 import { GuideCallout } from "@/components/explain/GuideCallout";
 import { Term } from "@/components/explain/Term";
+import { RolloutVisualizer } from "@/components/explain/RolloutVisualizer";
+import { WhyExplainer } from "@/components/explain/WhyExplainer";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const SDK_KEY = process.env.NEXT_PUBLIC_SDK_KEY || "sdk-secret-key";
@@ -72,6 +82,19 @@ export default function DemoPage() {
   // in sync with the latest config.
   const isOn = (key: string) => client.isEnabled(key, currentUser);
 
+  // The teaching section (visualizer + explainer) works on one flag at a time.
+  // Default to the most illustrative real flag: a partial rollout if there is one.
+  const flagList = useMemo(() => Array.from(allFlags.values()), [allFlags]);
+  const defaultVizKey = useMemo(() => {
+    const partial = flagList.find(
+      (f) => f.enabled && f.rollout_percentage > 0 && f.rollout_percentage < 100
+    );
+    return (partial ?? flagList[0])?.key ?? "";
+  }, [flagList]);
+  const [pickedVizKey, setPickedVizKey] = useState<string | null>(null);
+  const vizKey = pickedVizKey ?? defaultVizKey;
+  const vizFlag = allFlags.get(vizKey);
+
   // Staleness (W1) + reconcile (W2): the server version polls live, so while the
   // stream is disconnected you can watch the SDK fall behind, then catch up.
   const { data } = useFlags();
@@ -123,9 +146,11 @@ export default function DemoPage() {
 
       <GuideCallout>
         Notice a user always gets the same answer — that&apos;s the{" "}
-        <Term name="rollout">rollout</Term> being deterministic, not random. In
-        the next wave you&apos;ll be able to open any user and see exactly why a
-        flag is on or off. For now, switch users below and watch the cards react.
+        <Term name="rollout">rollout</Term> being{" "}
+        <Term name="determinism">deterministic</Term>, not random. Switch users
+        below and watch the cards react — then scroll down to{" "}
+        <em>see who a percentage includes</em> and check exactly why any user is
+        on or off.
       </GuideCallout>
 
       {isReady && (
@@ -168,6 +193,47 @@ export default function DemoPage() {
             );
           })}
         </div>
+      )}
+
+      {isReady && vizFlag && (
+        <section className="space-y-4 border-t border-border pt-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <PageIntro
+              title="Understand the rollout"
+              subtitle={
+                <>
+                  A percentage isn&apos;t random — it maps to a fixed set of
+                  users. Pick a flag, drag the percentage to see exactly who
+                  flips, and check why any single user lands on or off.
+                </>
+              }
+              className="min-w-0"
+            />
+            <div className="space-y-1.5">
+              <Label htmlFor="viz-flag">Flag</Label>
+              <Select
+                value={vizKey}
+                onValueChange={(val) => val && setPickedVizKey(val)}
+              >
+                <SelectTrigger id="viz-flag" className="w-52 font-mono">
+                  <SelectValue placeholder="Select flag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {flagList.map((f) => (
+                    <SelectItem key={f.key} value={f.key} className="font-mono">
+                      {f.key}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            <RolloutVisualizer flag={vizFlag} highlightUser={currentUser} />
+            <WhyExplainer flag={vizFlag} initialUser={currentUser} />
+          </div>
+        </section>
       )}
     </div>
   );

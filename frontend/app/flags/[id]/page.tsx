@@ -14,6 +14,8 @@ import { UpdateFlagInput } from "@/types/flag";
 import { GuideCallout } from "@/components/explain/GuideCallout";
 import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
 import { Term } from "@/components/explain/Term";
+import { RolloutVisualizer } from "@/components/explain/RolloutVisualizer";
+import { WhyExplainer } from "@/components/explain/WhyExplainer";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -178,6 +180,10 @@ export default function FlagDetailPage({
           isLoading={updateFlag.isPending}
         />
       </div>
+
+      {/* Teaching: who does this flag's rollout include, and why? */}
+      <RolloutVisualizer flag={flag} />
+      <WhyExplainer flag={flag} />
 
       {/* Metadata — dense, collapsed under Explain */}
       <AdvancedDetails label="Metadata">

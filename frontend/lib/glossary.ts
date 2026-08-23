@@ -118,6 +118,22 @@ export const GLOSSARY: GlossaryEntry[] = [
       "Each backend exposes /readyz. It returns ready only when the node can reach its dependencies (Postgres, Redis) and holds current config. A load balancer uses it to route traffic only to nodes that can actually serve correct answers.",
     analogy: "A shop's 'Open' sign — it only flips on when the tills and lights actually work.",
   },
+  {
+    id: "determinism",
+    term: "Determinism",
+    short: "Same input, same answer, every time — no randomness, no flicker.",
+    definition:
+      "A rollout is deterministic: a given user always gets the same verdict for a flag, on every page load and on every server. It isn't a fresh coin flip each request — it's a fixed roll derived from the user's id. That's why 25% means the same 25% of people, not a different quarter each time.",
+    analogy: "A dice that always rolls the same number for you — your seat is fixed.",
+  },
+  {
+    id: "hash-bucket",
+    term: "Hash bucket",
+    short: "A user's fixed 0–99 slot for a flag, from a hash of their id.",
+    definition:
+      "To decide a percentage rollout without storing per-user state, the flag key and user id are hashed (FNV-1a) into a number 0–99 — the user's bucket. If the bucket is below the rollout percentage, they're in. Because the hash is fixed, so is the bucket, so the answer is stable and every server computes it identically.",
+    analogy: "A permanent locker number — everyone can look it up and get the same one.",
+  },
 ];
 
 export const GLOSSARY_BY_ID: Record<string, GlossaryEntry> = Object.fromEntries(
