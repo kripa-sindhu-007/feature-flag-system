@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   LayoutDashboard,
   BookOpen,
+  GraduationCap,
+  Blocks,
 } from "lucide-react";
 import { ColorLegend } from "@/components/explain/ColorLegend";
 import { cn } from "@/lib/utils";
@@ -31,6 +33,8 @@ const navItems: NavItem[] = [
 ];
 
 const learnItems: NavItem[] = [
+  { href: "/learn", label: "Learn", icon: GraduationCap, status: "live" },
+  { href: "/playground", label: "Playground", icon: Blocks, status: "live" },
   { href: "/glossary", label: "Glossary", icon: BookOpen, status: "live" },
 ];
 

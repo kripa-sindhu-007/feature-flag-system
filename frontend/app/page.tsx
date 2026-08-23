@@ -22,6 +22,7 @@ import { AdvancedDetails } from "@/components/explain/AdvancedDetails";
 import { Term } from "@/components/explain/Term";
 import { PropagationHero } from "@/components/overview/PropagationHero";
 import { SseConsole } from "@/components/explain/SseConsole";
+import { TourButton } from "@/components/explain/GuidedTour";
 import { cn } from "@/lib/utils";
 
 export default function OverviewPage() {
@@ -41,6 +42,7 @@ export default function OverviewPage() {
       <PageIntro
         title="Watch a feature flag come to life"
         subtitle="A feature flag is a switch for your app you can flip without a redeploy. This one runs for real across three servers — flip it below and follow the change end to end."
+        actions={<TourButton className="lg:hidden" />}
       />
 
       <GuideCallout>
