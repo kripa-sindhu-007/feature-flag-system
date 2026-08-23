@@ -482,7 +482,7 @@ feature-flag-system/
 │   └── design-system/           # MASTER.md — design tokens & UI spec
 ├── infra/                       # nginx, prometheus, otel-collector, grafana provisioning
 ├── chaos/                       # Fault-injection scripts + run-all.sh
-├── docs/                        # BENCHMARKS.md, CHAOS.md, LIMITATIONS.md, UX_ROADMAP.md, screenshots
+├── docs/                        # BENCHMARKS.md, CHAOS.md, LIMITATIONS.md, screenshots
 └── docker-compose.yml           # Full stack: 3 backends + LB + observability
 ```
 
